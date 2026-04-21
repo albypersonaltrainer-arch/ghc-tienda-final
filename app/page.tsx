@@ -239,11 +239,10 @@ export default function LandingPage() {
       {/* Header con Logo Centrado */}
       <header className="relative py-8 flex flex-col items-center border-b border-gray-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-sm">
         <div className="relative h-36 w-36 overflow-hidden">
-          <img 
-            src="https:///logo-limpio.png-KWwScWu3qmacEqCxKxqLy8rprgcMHU.jpeg" 
+         <img 
+            src="/logo-limpio.png" 
             alt="GHC Nutrition Logo" 
-            className="h-full w-full object-contain drop-shadow-lg" 
-          />
+            className="h-full w-full object-contain drop-shadow-lg"/>
         </div>
         <p className="mt-3 text-orange-600 uppercase tracking-[0.25em] text-xs font-bold">
           Distribuidor Oficial Beverly Nutrition
