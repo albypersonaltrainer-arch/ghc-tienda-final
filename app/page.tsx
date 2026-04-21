@@ -238,7 +238,7 @@ export default function LandingPage() {
 
       {/* Header con Logo Centrado */}
       <header className="relative py-8 flex flex-col items-center border-b border-gray-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-sm">
-        <div className="relative h-32 w-56 overflow-hidden">
+        <div className="relative h-36 w-36 overflow-hidden">
           <img 
             src="https:///logo-limpio.png-KWwScWu3qmacEqCxKxqLy8rprgcMHU.jpeg" 
             alt="GHC Nutrition Logo" 
