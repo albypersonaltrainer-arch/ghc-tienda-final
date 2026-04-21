@@ -240,7 +240,7 @@ export default function LandingPage() {
       <header className="relative py-8 flex flex-col items-center border-b border-gray-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-sm">
         <div className="relative h-32 w-56 overflow-hidden">
           <img 
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo.png.png-KWwScWu3qmacEqCxKxqLy8rprgcMHU.jpeg" 
+            src="https:///logo-limpio.png-KWwScWu3qmacEqCxKxqLy8rprgcMHU.jpeg" 
             alt="GHC Nutrition Logo" 
             className="h-full w-full object-contain drop-shadow-lg" 
           />
