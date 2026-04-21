@@ -264,7 +264,7 @@ export default function LandingPage() {
             <img 
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/colageno-rQhEmCHoRZ4qFSOEisJ4NnnMLfiqdG.webp" 
               alt="Colageno Beverly"
-              className="w-56 h-56 object-contain drop-shadow-xl" 
+             className="w-80 h-80 object-contain drop-shadow-xl md:w-96 md:h-96" 
             />
           </div>
           <div className="flex-1 text-center md:text-left">
