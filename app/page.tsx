@@ -33,14 +33,24 @@ const products = [
     description: "Proteina vegetal de guisante y arroz" 
   },
   { 
-    id: 4, 
-    name: "Creatina 500g", 
-    price: 39.90, 
-    sumupLink: "https://pay.sumup.com/b2c/QEYKCSD6",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/creatina%20500g-nt8PxaZscVo3qP4d4o80owqOaQ6ihY.webp", 
-    flavors: ["Sin Sabor"], 
-    description: "100% Monohidrato - Maxima pureza" 
-  },
+   {
+  id: 4,
+  name: "Creatina 500g",
+  price: 39.90,
+  sumupLink: "https://pay.sumup.com/b2c/QEYKCSD6",
+  image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/creatina%20500g-nt8PxaZscVo3qP4d4o80owqOaQ6ihY.webp",
+  flavors: ["Sin Sabor"],
+  description: "100% Monohidrato - Máxima pureza",
+  tech: {
+    ingredients: "Creatina Monohidrato (100% Ultra-pure).",
+    nutrition: [
+      "Creatina Monohidrato: 3000 mg",
+      "Servicios por envase: 166",
+      "Sin azúcares ni grasas"
+    ],
+    aminogram: "Pureza garantizada 100% Monohidrato."
+  }
+},
   { 
     id: 5, 
     name: "BCAA 8:1:1 300g", 
