@@ -525,7 +525,7 @@ export default function LandingPage() {
             <p className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Entrega actual</p>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] md:text-4xl">Madrid primero.<br />España después.</h2>
             <p className="mt-4 max-w-lg text-sm leading-6 text-black/55">Por ahora aceptamos pedidos para Madrid y municipios de la Comunidad de Madrid. El checkout valida el código postal antes de cobrar.</p>
-            <div className="mt-7 grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-[#F2F4F1] p-5"><p className="text-2xl font-black">5,90 €</p><p className="mt-1 text-xs text-black/45">Pedidos inferiores a 70 €</p></div><div className="rounded-2xl bg-[#22D65B] p-5"><p className="text-2xl font-black">Gratis</p><p className="mt-1 text-xs text-black/60">Desde 70 €</p></div></div>
+            <div className="mt-7 grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-[#F2F4F1] p-5"><p className="text-2xl font-black">10 €</p><p className="mt-1 text-xs text-black/45">Pedidos inferiores a 70 €</p></div><div className="rounded-2xl bg-[#22D65B] p-5"><p className="text-2xl font-black">Gratis</p><p className="mt-1 text-xs text-black/60">Desde 70 €</p></div></div>
           </div>
           <div className="rounded-[34px] bg-[#050706] p-8 text-white md:p-10">
             <Gift className="h-7 w-7 text-[#22D65B]" />
