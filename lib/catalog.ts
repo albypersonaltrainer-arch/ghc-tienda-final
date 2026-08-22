@@ -62,7 +62,7 @@ export const products: Product[] = [
     id: 'map-300g',
     name: 'M.A.P. 300g',
     price: 36.5,
-    image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MAP%20300%20blue%20lollipop-fBOTN6amSVgMUkF8ijSzUxaRZoAOew',
+    image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MAP%20300%20blue%20lollipop-fBOTN6amSVgMUkF8ijSzUxaRZoAOew.webp',
     flavors: ['Blue Lollipop', 'Watermelon'],
     description: 'Aminoácidos esenciales',
     category: 'Rendimiento',
