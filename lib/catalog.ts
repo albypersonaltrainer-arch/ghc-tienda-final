@@ -85,8 +85,7 @@ export const products: Product[] = [
   makeProduct({
     id: 'bcaa-811-300g', tariffRef: 'BEV811T', name: 'BCAA 8:1:1 + L-Glutamina 300g', price: 32.82,
     image: officialImage('BCAA 8:1:1 + L-Glutamina - 300 g - Blue Lollipop'), flavors: ['Blue Lollipop'],
-    description: 'BCAA 8:1:1 con L-glutamina y vitamina B6.', category: 'Recuperación & Aminoácidos', categories: ['Recuperación & Aminoácidos'],
-    format: '300 g en polvo',
+    description: 'BCAA 8:1:1 con L-glutamina y vitamina B6.', category: 'Recuperación & Aminoácidos', categories: ['Recuperación & Aminoácidos'], format: '300 g en polvo',
   }),
   makeProduct({
     id: 'map-300g', tariffRef: 'BEVMAP', name: 'M.A.P. Essential Amino Acids 300g', price: 38.5,
@@ -139,8 +138,7 @@ export const products: Product[] = [
   }),
   makeProduct({
     id: 'pure-whey-1kg', tariffRef: 'BEVPURE', name: 'Pure Whey 1kg', price: 49,
-    image: officialImage('Pure Whey - 1 Kg'), flavors: ['Unflavored'], description: 'Whey Lacprodan® sin sabor añadido.',
-    category: 'Proteínas', categories: ['Proteínas'], format: '1 kg en polvo',
+    image: officialImage('Pure Whey - 1 Kg'), flavors: ['Unflavored'], description: 'Whey Lacprodan® sin sabor añadido.', category: 'Proteínas', categories: ['Proteínas'], format: '1 kg en polvo',
   }),
   makeProduct({
     id: 'whey-pro-concentrate-1kg', tariffRef: 'BEVWPCHC1', name: 'Whey Pro Concentrate 1kg', price: 41.65,
@@ -190,10 +188,11 @@ export const products: Product[] = [
   }),
   makeProduct({
     id: 'women-protein-1kg', tariffRef: 'BEVWPSCH', name: 'Women Protein Shake 1kg', price: 49,
-    image: officialImage('Women Protein Shake - 1 Kg - Capuccino'), flavors: ['Capuccino'],
-    description: 'Protein shake de la colección For Her. Beverly publica actualmente el formato de 1 kg en Capuccino.',
-    longDescription: 'Beverly también mantiene sabores de Women Protein Shake en formato 500 g; no los mezclamos con la referencia de 1 kg para evitar vender un formato distinto al seleccionado.',
+    image: officialImage('Women Protein Shake - 1 Kg - Capuccino'),
+    flavors: ['Capuccino', 'Chocolate', 'Petit Beurre', 'Strawberry White Chocolate'],
+    description: 'Protein shake con colágeno marino Peptan®, magnesio y vitamina E. Beverly publica el formato 1 kg en cuatro sabores.',
     category: 'For Her', categories: ['For Her', 'Proteínas', 'Recuperación & Aminoácidos'], badge: 'For Her', format: '1 kg en polvo',
+    officialUrl: 'https://beverly.es/products/women-protein-shake-1-kg-capuccino',
   }),
   makeProduct({
     id: 'collagen-for-her-20', tariffRef: 'BEVCOL', name: 'Collagen For Her 20 viales', price: 37,
