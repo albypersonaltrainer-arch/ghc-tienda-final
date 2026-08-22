@@ -7,9 +7,16 @@ const REQUEST_HEADERS = {
 }
 
 type PredictiveProduct = {
+  title?: string
   url?: string
   image?: string
   featured_image?: string | { url?: string }
+}
+
+type ShopifyProduct = {
+  title?: string
+  handle?: string
+  images?: Array<{ src?: string }>
 }
 
 function decodeHtml(value: string) {
@@ -17,6 +24,16 @@ function decodeHtml(value: string) {
     .replaceAll('&amp;', '&')
     .replaceAll('&quot;', '"')
     .replaceAll('&#39;', "'")
+}
+
+function normalize(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[®™©]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
 }
 
 function safeImageResponse(image: string) {
@@ -36,7 +53,15 @@ function safeImageResponse(image: string) {
   })
 }
 
-async function findImageByName(name: string) {
+function imageFromPredictive(product?: PredictiveProduct) {
+  if (!product) return null
+  const featured = typeof product.featured_image === 'string'
+    ? product.featured_image
+    : product.featured_image?.url
+  return featured || product.image || null
+}
+
+async function findImageByPredictiveSearch(name: string) {
   const searchUrl = new URL('https://beverly.es/search/suggest.json')
   searchUrl.searchParams.set('q', name)
   searchUrl.searchParams.set('resources[type]', 'product')
@@ -55,14 +80,40 @@ async function findImageByName(name: string) {
     }
   }
   const products = payload.resources?.results?.products || payload.resources?.products || []
-  const product = products[0]
-  if (!product) return null
+  if (!products.length) return null
 
-  const featured = typeof product.featured_image === 'string'
-    ? product.featured_image
-    : product.featured_image?.url
+  const target = normalize(name)
+  const best = products.find((product) => normalize(product.title || '') === target) || products[0]
+  return imageFromPredictive(best)
+}
 
-  return featured || product.image || null
+async function findImageByCatalog(name: string) {
+  const url = new URL('https://beverly.es/products.json')
+  url.searchParams.set('limit', '250')
+
+  const response = await fetch(url, {
+    next: { revalidate: 21600 },
+    headers: REQUEST_HEADERS,
+  })
+  if (!response.ok) return null
+
+  const payload = await response.json() as { products?: ShopifyProduct[] }
+  const products = payload.products || []
+  const target = normalize(name)
+  const targetWords = target.split(' ').filter((word) => word.length > 2)
+
+  const exact = products.find((product) => normalize(product.title || '') === target)
+  const contains = products.find((product) => {
+    const title = normalize(product.title || '')
+    return targetWords.length > 0 && targetWords.every((word) => title.includes(word))
+  })
+  const partial = products.find((product) => {
+    const title = normalize(product.title || '')
+    const matched = targetWords.filter((word) => title.includes(word)).length
+    return targetWords.length > 0 && matched / targetWords.length >= 0.7
+  })
+
+  return exact?.images?.[0]?.src || contains?.images?.[0]?.src || partial?.images?.[0]?.src || null
 }
 
 async function imageFromProductUrl(source: string) {
@@ -100,7 +151,8 @@ export async function GET(request: NextRequest) {
 
     let image: string | null = null
     if (source) image = await imageFromProductUrl(source)
-    if (!image && name && name.length <= 140) image = await findImageByName(name)
+    if (!image && name && name.length <= 140) image = await findImageByPredictiveSearch(name)
+    if (!image && name && name.length <= 140) image = await findImageByCatalog(name)
 
     if (!image) return new NextResponse('Official product image not found', { status: 404 })
     return safeImageResponse(image)
