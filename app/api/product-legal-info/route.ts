@@ -163,14 +163,15 @@ function extractAllergens(rawIngredients: string) {
 
 function meaningfulFlavor(flavor: string) {
   const normalized = normalize(flavor)
-  if (!normalized || ['capsulas', 'unflavored'].includes(normalized)) return ''
+  if (!normalized || normalized === 'capsulas') return ''
   if (normalized.includes('viales') || normalized.includes('sticks')) return ''
   return normalized
 }
 
 function scoreProduct(product: BeverlyProduct, family: string, flavor: string) {
   const title = normalize(`${product.title || ''} ${product.handle || ''}`)
-  const familyWords = normalize(family).split(' ').filter((word) => word.length > 1)
+  const normalizedFamily = normalize(family)
+  const familyWords = normalizedFamily.split(' ').filter((word) => word.length > 1)
   const familyMatches = familyWords.filter((word) => title.includes(word)).length
   let score = familyWords.length ? (familyMatches / familyWords.length) * 100 : 0
 
@@ -178,10 +179,12 @@ function scoreProduct(product: BeverlyProduct, family: string, flavor: string) {
   if (wantedFlavor) {
     const flavorWords = wantedFlavor.split(' ').filter((word) => word.length > 1)
     const flavorMatches = flavorWords.filter((word) => title.includes(word)).length
-    score += flavorWords.length ? (flavorMatches / flavorWords.length) * 35 : 0
+    score += flavorWords.length ? (flavorMatches / flavorWords.length) * 45 : 0
+    if (title.includes(wantedFlavor)) score += 20
   }
 
-  if (title.includes(normalize(family))) score += 40
+  if (title.includes(normalizedFamily)) score += 40
+  if (!normalizedFamily.includes('for her') && title.includes('for her')) score -= 60
   return score
 }
 
@@ -262,8 +265,6 @@ export async function GET(request: NextRequest) {
     const hasUsage = usage.length > 0
     const hasCaffeineAmountWhenRequired = !caffeine || Boolean(caffeineRow?.value)
 
-    // Regla conservadora: si la fuente oficial no publica la información alimentaria esencial
-    // de la referencia seleccionada, GHC no la marca como apta para venta a distancia.
     const legalReady = hasIngredients && hasCoreComposition && hasUsage && hasCaffeineAmountWhenRequired
     const missing: string[] = []
     if (!hasIngredients) missing.push('ingredientes')
@@ -280,7 +281,7 @@ export async function GET(request: NextRequest) {
       legalDenomination: supplement ? 'Complemento alimenticio' : (descriptionSection?.text || officialTitle),
       officialTitle,
       officialUrl: match.product.handle ? `https://beverly.es/products/${match.product.handle}` : null,
-      quantity: quantityFromTitle(officialTitle),
+      quantity: normalizedName === 'pack collagen for her 2 cajas' ? '2 cajas · 40 viales' : quantityFromTitle(officialTitle),
       description: descriptionSection?.text || '',
       ingredients,
       allergens,
