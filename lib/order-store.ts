@@ -53,6 +53,12 @@ type CustomerInput = {
   phone: string
 }
 
+type LegalAcceptanceInput = {
+  acceptanceType: 'terms' | 'privacy_notice' | 'returns_notice'
+  documentVersion: string
+  acceptedAt: string
+}
+
 const ORDER_SELECT = [
   'id',
   'checkout_reference',
@@ -129,6 +135,7 @@ export async function createPendingOrder(input: {
   postalCode: string
   state: string
   country: string
+  legalAcceptances: LegalAcceptanceInput[]
   items: Array<{
     productId: string
     name: string
@@ -180,6 +187,25 @@ export async function createPendingOrder(input: {
         quantity: item.quantity,
         unit_price_cents: item.unitPriceCents,
         unit_pvp_cents: item.unitPvpCents,
+      })),
+    ),
+  })
+
+  await supabaseRest('order_legal_acceptances', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify(
+      input.legalAcceptances.map((acceptance) => ({
+        order_id: order.id,
+        acceptance_type: acceptance.acceptanceType,
+        document_version: acceptance.documentVersion,
+        accepted: true,
+        accepted_at: acceptance.acceptedAt,
+        evidence_metadata: {
+          source: 'web_checkout',
+          checkout_reference: input.checkoutReference,
+          payment_action: 'pedido_con_obligacion_de_pago',
+        },
       })),
     ),
   })
