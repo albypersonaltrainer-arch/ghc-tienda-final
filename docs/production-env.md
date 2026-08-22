@@ -9,3 +9,4 @@ Required for production checkout:
 - `NEXT_PUBLIC_SITE_URL=https://www.ghcnutrition.com` (recommended)
 
 Secrets must be configured in Vercel and never committed to the repository.
+After adding or rotating production environment variables, trigger a new production deployment so the runtime picks up the new values.
