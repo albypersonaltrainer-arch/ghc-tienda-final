@@ -140,32 +140,22 @@
   }
 }
 
-@keyframes ghc-product-in {
-  from {
-    opacity: 0;
-    transform: translate3d(20px, 18px, 0) scale(0.975);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
 .hero-photo {
   animation: ghc-photo-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Recovery/salud: no random architecture. The third scene uses a restrained GHC recovery field. */
+/* Slide 3: no architecture. A calm GHC recovery field replaces the unrelated building shot. */
 .hero-photo[style*="1781379947451"] {
   background-image:
-    radial-gradient(circle at 68% 26%, rgba(39, 214, 95, 0.22), transparent 24%),
+    radial-gradient(circle at 68% 26%, rgba(39, 214, 95, 0.20), transparent 24%),
     radial-gradient(circle at 38% 70%, rgba(10, 13, 11, 0.08), transparent 30%),
     linear-gradient(145deg, #dfe5df 0%, #cbd4cc 48%, #aeb9b0 100%) !important;
   background-position: center !important;
 }
 
-.hero-product {
-  animation: ghc-product-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+/* Hero products were visually competing with the contextual photography. They are removed from all three hero scenes. */
+#inicio .hero-product {
+  display: none !important;
 }
 
 .product-study-image {
@@ -185,28 +175,28 @@
   display: none;
 }
 
-/* Catalog navigation: solid, high-contrast controls instead of faint text. */
+/* Catalog navigation: high contrast and obvious active state. */
 #catalogo .scrollbar-none {
   gap: 8px !important;
-  border: 1px solid rgba(10, 13, 11, 0.14) !important;
-  background: #eceee9;
+  border: 1px solid rgba(10, 13, 11, 0.16) !important;
+  background: #e8ebe5;
   padding: 10px !important;
 }
 
 #catalogo .scrollbar-none button {
-  min-height: 46px;
-  border: 1px solid rgba(10, 13, 11, 0.16);
+  min-height: 48px;
+  border: 1px solid rgba(10, 13, 11, 0.19);
   background: #ffffff;
   color: #0a0d0b !important;
-  padding: 0 17px;
+  padding: 0 18px;
   font-size: 11px !important;
-  letter-spacing: 0.105em !important;
+  letter-spacing: 0.1em !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.95) inset;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
 }
 
 #catalogo .scrollbar-none button:hover {
-  border-color: rgba(10, 13, 11, 0.58);
+  border-color: rgba(10, 13, 11, 0.62);
   transform: translateY(-1px);
 }
 
@@ -217,70 +207,39 @@
 }
 
 #catalogo .scrollbar-none button span {
-  color: #169646 !important;
+  color: #27d65f !important;
   opacity: 1 !important;
 }
 
 #catalogo > div > div:first-child > p:last-child {
-  color: rgba(10, 13, 11, 0.8) !important;
+  color: rgba(10, 13, 11, 0.84) !important;
   font-weight: 650;
 }
 
 @media (min-width: 1024px) {
-  /* Hero rule: photography and product never occupy the same visual plane. */
+  /* Contextual photography is now the only visual on the right side of the hero. */
   #inicio .hero-photo {
-    clip-path: inset(0 0 54% 0);
-    background-position: center 34%;
+    clip-path: none;
+    background-position: center;
   }
 
   #inicio .hero-photo > span {
-    top: 18px;
-    bottom: auto;
+    bottom: 20px;
+    top: auto;
     right: 20px;
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.72);
   }
 
-  #inicio .hero-product {
-    box-sizing: border-box;
-    width: min(86%, 390px) !important;
-    min-height: 315px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 18px;
-    padding: 26px 28px 62px;
-    background: #f4f4f0;
-    border: 1px solid rgba(10, 13, 11, 0.13);
-    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.14);
-  }
-
-  #inicio .hero-product > img {
-    width: auto !important;
-    max-width: 100% !important;
-    max-height: 245px;
-  }
-
-  #inicio .hero-product > div:last-child {
-    bottom: 17px !important;
-    background: #f4f4f0 !important;
-    border-top: 1px solid rgba(10, 13, 11, 0.09);
-    padding-top: 9px !important;
-    padding-bottom: 0 !important;
-    backdrop-filter: none !important;
+  #inicio > div:nth-child(2) {
+    grid-template-columns: 0.58fr 0.42fr;
   }
 }
 
 @media (max-width: 1023px) {
-  /* Mobile: remove contextual photography entirely so the product stays on a clean field. */
+  /* Mobile keeps the hero readable; photography becomes a subtle environmental layer, never a product backdrop. */
   #inicio .hero-photo {
-    display: none;
-  }
-
-  #inicio .hero-product {
-    background: #f4f4f0;
-    border: 1px solid rgba(10, 13, 11, 0.11);
-    padding: 18px 18px 40px;
-    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.13);
+    opacity: 0.18;
+    filter: grayscale(1);
   }
 
   #catalogo .scrollbar-none {
@@ -298,8 +257,7 @@
     scroll-behavior: auto;
   }
 
-  .hero-photo,
-  .hero-product {
+  .hero-photo {
     animation: none;
   }
 
