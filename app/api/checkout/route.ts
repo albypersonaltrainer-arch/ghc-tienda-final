@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
     flavor: string
     quantity: number
     unitPrice: number
+    pvpPrice: number
   }> = []
 
   for (const rawItem of body.items) {
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
       flavor,
       quantity,
       unitPrice: product.price,
+      pvpPrice: product.regularPrice ?? product.price,
     })
   }
 
@@ -190,15 +192,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // El catálogo del servidor es la única fuente de importes.
-  // subtotalCents es PVP de producto antes de cupones y excluye portes: esa es también
-  // la base de la comisión del entrenador, tal como se ha definido comercialmente.
+  // unitPrice es el precio real cobrado antes de cupón.
   const subtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
     0,
   )
 
-  if (subtotalCents <= 0 || subtotalCents > 500_000) {
+  // pvpPrice conserva el PVP de referencia. Si hay un pack/promoción GHC,
+  // puede ser superior a unitPrice y sigue siendo la base pactada con el entrenador.
+  const pvpSubtotalCents = normalizedItems.reduce(
+    (sum, item) => sum + Math.round(item.pvpPrice * 100) * item.quantity,
+    0,
+  )
+
+  if (subtotalCents <= 0 || subtotalCents > 500_000 || pvpSubtotalCents <= 0) {
     return NextResponse.json({ error: 'El importe del pedido no es válido.' }, { status: 400 })
   }
 
@@ -223,8 +230,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // El enlace del entrenador nunca bloquea la venta: si el código ya no está activo,
-    // el checkout continúa sin atribución ni comisión.
     const trainer = requestedTrainerCode
       ? await getActiveTrainerPartner(requestedTrainerCode)
       : null
@@ -239,9 +244,9 @@ export async function POST(request: NextRequest) {
     }
 
     const trainerCommissionPercent = trainer?.commission_percent ?? null
-    const trainerCommissionBaseCents = trainer ? subtotalCents : null
+    const trainerCommissionBaseCents = trainer ? pvpSubtotalCents : null
     const trainerCommissionCents = trainer
-      ? Math.floor((subtotalCents * trainer.commission_percent) / 100)
+      ? Math.floor((pvpSubtotalCents * trainer.commission_percent) / 100)
       : null
 
     order = await createPendingOrder({
@@ -270,6 +275,7 @@ export async function POST(request: NextRequest) {
         flavor: item.flavor,
         quantity: item.quantity,
         unitPriceCents: Math.round(item.unitPrice * 100),
+        unitPvpCents: Math.round(item.pvpPrice * 100),
       })),
     })
 
