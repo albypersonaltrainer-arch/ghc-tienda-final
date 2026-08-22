@@ -6,15 +6,21 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  CircleCheck,
+  Gift,
+  Info,
   Minus,
+  PackageCheck,
   Plus,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Trash2,
+  Truck,
   X,
 } from 'lucide-react'
 import { collagenPromo, formatPrice, products, type Product } from '@/lib/catalog'
+import { FREE_SHIPPING_THRESHOLD, getShippingCost } from '@/lib/commerce'
 
 type CartItem = {
   productId: string
@@ -30,8 +36,6 @@ type CustomerForm = {
   addressLine: string
   city: string
   postalCode: string
-  state: string
-  country: string
 }
 
 const EMPTY_CUSTOMER: CustomerForm = {
@@ -42,18 +46,10 @@ const EMPTY_CUSTOMER: CustomerForm = {
   addressLine: '',
   city: '',
   postalCode: '',
-  state: '',
-  country: 'ES',
 }
 
-const categoryCopy = {
-  Todos: 'Todo el catálogo',
-  Proteína: 'Proteína y recuperación',
-  Rendimiento: 'Rendimiento',
-  Salud: 'Salud activa',
-} as const
-
-type Category = keyof typeof categoryCopy
+const categories = ['Todos', 'Proteína', 'Rendimiento', 'Salud'] as const
+type Category = (typeof categories)[number]
 
 function cartKey(item: Pick<CartItem, 'productId' | 'flavor'>) {
   return `${item.productId}::${item.flavor}`
@@ -62,48 +58,63 @@ function cartKey(item: Pick<CartItem, 'productId' | 'flavor'>) {
 function ProductCard({
   product,
   onAdd,
+  onDetails,
 }: {
   product: Product
   onAdd: (product: Product, flavor: string) => void
+  onDetails: (product: Product) => void
 }) {
   const [flavor, setFlavor] = useState(product.flavors[0])
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(0,0,0,0.10)]">
-      <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100 p-6">
-        {product.badge && (
-          <span className="absolute left-5 top-5 z-10 rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
-            {product.badge}
-          </span>
-        )}
+    <article className="group flex h-full flex-col overflow-hidden rounded-[30px] border border-black/[0.07] bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(5,7,6,0.10)]">
+      <button
+        type="button"
+        onClick={() => onDetails(product)}
+        className="relative flex h-72 w-full items-center justify-center overflow-hidden bg-[#F6F7F4] p-7 text-left"
+        aria-label={`Ver ficha de ${product.name}`}
+      >
+        <div className="absolute right-5 top-5 z-10 flex items-center gap-2">
+          {product.badge && (
+            <span className="rounded-full bg-[#050706] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+              {product.badge}
+            </span>
+          )}
+        </div>
+        <div className="absolute -bottom-24 -right-20 h-52 w-52 rounded-full bg-[#22D65B]/10 blur-2xl" />
         <Image
           src={product.image}
           alt={product.name}
-          width={420}
-          height={420}
-          sizes="(max-width: 768px) 80vw, (max-width: 1200px) 40vw, 25vw"
-          className="h-52 w-auto object-contain drop-shadow-xl transition duration-500 group-hover:scale-[1.05]"
+          width={520}
+          height={520}
+          sizes="(max-width: 768px) 85vw, (max-width: 1200px) 40vw, 25vw"
+          className="relative z-[1] h-56 w-auto object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.16)] transition duration-500 group-hover:scale-[1.06]"
         />
-      </div>
+        <span className="absolute bottom-5 left-5 inline-flex items-center gap-1.5 text-xs font-bold text-black/55 opacity-0 transition group-hover:opacity-100">
+          <Info className="h-3.5 w-3.5" /> Ficha técnica
+        </span>
+      </button>
 
       <div className="flex flex-1 flex-col p-6">
-        <div className="mb-5">
-          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
-            {product.category}
-          </p>
-          <h3 className="text-xl font-black leading-tight text-zinc-950">{product.name}</h3>
-          <p className="mt-2 min-h-10 text-sm leading-5 text-zinc-500">{product.description}</p>
-        </div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[#159943]">
+          {product.category}
+        </p>
+        <button type="button" onClick={() => onDetails(product)} className="text-left">
+          <h3 className="text-xl font-black leading-tight tracking-[-0.02em] text-[#050706]">
+            {product.name}
+          </h3>
+        </button>
+        <p className="mt-2 min-h-11 text-sm leading-5 text-black/55">{product.description}</p>
 
-        <label className="mb-5 block">
-          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
+        <label className="mt-5 block">
+          <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-black/45">
             Formato / sabor
           </span>
           <div className="relative">
             <select
               value={flavor}
               onChange={(event) => setFlavor(event.target.value)}
-              className="h-12 w-full appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 pr-10 text-sm font-semibold text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
+              className="h-12 w-full appearance-none rounded-xl border border-black/10 bg-[#F6F7F4] px-4 pr-10 text-sm font-bold text-[#050706] outline-none transition focus:border-[#22D65B] focus:ring-2 focus:ring-[#22D65B]/15"
             >
               {product.flavors.map((option) => (
                 <option key={option} value={option}>
@@ -111,25 +122,116 @@ function ProductCard({
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/45" />
           </div>
         </label>
 
-        <div className="mt-auto flex items-center justify-between gap-4 border-t border-zinc-100 pt-5">
-          <span className="text-2xl font-black tracking-tight text-zinc-950">
-            {formatPrice(product.price)}
-          </span>
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-black/[0.07] pt-5">
+          <div>
+            {product.regularPrice && (
+              <span className="mr-2 text-xs font-semibold text-black/35 line-through">
+                {formatPrice(product.regularPrice)}
+              </span>
+            )}
+            <span className="text-2xl font-black tracking-[-0.04em] text-[#050706]">
+              {formatPrice(product.price)}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => onAdd(product, flavor)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-black text-white transition hover:bg-orange-600 active:scale-[0.98]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#050706] px-4 text-sm font-black text-white transition hover:bg-[#159943] active:scale-[0.98]"
           >
-            <ShoppingBag className="h-4 w-4" />
-            Añadir
+            <Plus className="h-4 w-4" /> Añadir
           </button>
         </div>
       </div>
     </article>
+  )
+}
+
+function ProductDetails({ product, onClose, onAdd }: {
+  product: Product
+  onClose: () => void
+  onAdd: (product: Product, flavor: string) => void
+}) {
+  const [flavor, setFlavor] = useState(product.flavors[0])
+
+  useEffect(() => setFlavor(product.flavors[0]), [product])
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm md:items-center md:p-6" onMouseDown={onClose}>
+      <div
+        className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-t-[32px] bg-[#F2F4F1] shadow-2xl md:rounded-[36px]"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 flex justify-end bg-[#F2F4F1]/90 p-4 backdrop-blur md:rounded-t-[36px]">
+          <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full bg-white text-black shadow-sm">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="grid gap-8 px-5 pb-8 md:grid-cols-[0.82fr_1.18fr] md:px-10 md:pb-12">
+          <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-[28px] bg-white p-8">
+            <div className="absolute -bottom-10 -right-10 h-44 w-44 rounded-full bg-[#22D65B]/12 blur-2xl" />
+            <Image src={product.image} alt={product.name} width={620} height={620} className="relative h-72 w-auto object-contain drop-shadow-2xl" />
+          </div>
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#159943]">Beverly Nutrition · {product.category}</p>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#050706] md:text-4xl">{product.name}</h2>
+            <p className="mt-4 text-base leading-7 text-black/65">{product.longDescription}</p>
+
+            <div className="mt-7 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-white p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-black/40">Formato</p>
+                <p className="mt-1 font-black text-[#050706]">{product.format}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-black/40">Servicio</p>
+                <p className="mt-1 font-black text-[#050706]">{product.serving || 'Ver etiqueta'}</p>
+              </div>
+            </div>
+
+            <h3 className="mt-8 text-sm font-black uppercase tracking-[0.16em] text-[#050706]">Ficha técnica</h3>
+            <div className="mt-3 overflow-hidden rounded-2xl border border-black/[0.07] bg-white">
+              {product.technical.map((row, index) => (
+                <div key={`${row.label}-${index}`} className="flex items-center justify-between gap-4 border-b border-black/[0.06] px-4 py-3 last:border-0">
+                  <span className="text-sm text-black/55">{row.label}</span>
+                  <span className="text-right text-sm font-black text-[#050706]">{row.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {product.ingredients && (
+              <details className="mt-4 rounded-2xl border border-black/[0.07] bg-white p-4">
+                <summary className="cursor-pointer text-sm font-black">Ingredientes</summary>
+                <p className="mt-3 text-sm leading-6 text-black/60">{product.ingredients}</p>
+              </details>
+            )}
+            <details className="mt-3 rounded-2xl border border-black/[0.07] bg-white p-4">
+              <summary className="cursor-pointer text-sm font-black">Modo de empleo</summary>
+              <p className="mt-3 text-sm leading-6 text-black/60">{product.use}</p>
+            </details>
+            {product.note && <p className="mt-3 text-xs leading-5 text-black/45">{product.note}</p>}
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex-1">
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-black/40">Sabor / variante</span>
+                <div className="relative">
+                  <select value={flavor} onChange={(e) => setFlavor(e.target.value)} className="h-12 w-full appearance-none rounded-xl border border-black/10 bg-white px-4 pr-10 text-sm font-bold outline-none focus:border-[#22D65B]">
+                    {product.flavors.map((item) => <option key={item}>{item}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2" />
+                </div>
+              </label>
+              <button type="button" onClick={() => { onAdd(product, flavor); onClose() }} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#050706] px-6 text-sm font-black text-white hover:bg-[#159943]">
+                <ShoppingBag className="h-4 w-4" /> Añadir · {formatPrice(product.price)}
+              </button>
+            </div>
+            <p className="mt-5 text-[11px] leading-5 text-black/40">Información basada en ficha del fabricante. En caso de actualización de fórmula, prevalece siempre la etiqueta física del producto.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -140,9 +242,11 @@ export default function LandingPage() {
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details'>('cart')
   const [customer, setCustomer] = useState<CustomerForm>(EMPTY_CUSTOMER)
   const [referral, setReferral] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
   const [checkingOut, setCheckingOut] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   useEffect(() => {
     const saved = window.localStorage.getItem('ghc_cart')
@@ -159,103 +263,68 @@ export default function LandingPage() {
     const refFromUrl = params.get('ref')
     const savedRef = window.sessionStorage.getItem('ghc_ref')
     const activeRef = refFromUrl || savedRef
-
     if (activeRef) {
       setReferral(activeRef)
       window.sessionStorage.setItem('ghc_ref', activeRef)
     }
-
     setHydrated(true)
   }, [])
 
   useEffect(() => {
-    if (!hydrated) return
-    window.localStorage.setItem('ghc_cart', JSON.stringify(cart))
+    if (hydrated) window.localStorage.setItem('ghc_cart', JSON.stringify(cart))
   }, [cart, hydrated])
 
   useEffect(() => {
-    document.body.style.overflow = cartOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [cartOpen])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setCartOpen(false)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+    document.body.style.overflow = cartOpen || selectedProduct ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [cartOpen, selectedProduct])
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'Todos') return products
     return products.filter((product) => product.category === activeCategory)
   }, [activeCategory])
 
-  const detailedCart = useMemo(() => {
-    return cart
-      .map((item) => {
-        const product =
-          item.productId === collagenPromo.id
-            ? collagenPromo
-            : products.find((candidate) => candidate.id === item.productId)
-        return product ? { ...item, product } : null
-      })
-      .filter(Boolean) as Array<CartItem & { product: Product }>
-  }, [cart])
+  const detailedCart = useMemo(() => cart.map((item) => {
+    const product = item.productId === collagenPromo.id
+      ? collagenPromo
+      : products.find((candidate) => candidate.id === item.productId)
+    return product ? { ...item, product } : null
+  }).filter(Boolean) as Array<CartItem & { product: Product }>, [cart])
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
-  const total = detailedCart.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  )
+  const subtotal = detailedCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  const shipping = subtotal > 0 ? getShippingCost(subtotal) : 0
+  const amountForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal)
 
   const addToCart = (product: Product, flavor: string) => {
     setCart((current) => {
       const key = cartKey({ productId: product.id, flavor })
       const existing = current.find((item) => cartKey(item) === key)
-
       if (existing) {
-        return current.map((item) =>
-          cartKey(item) === key
-            ? { ...item, quantity: Math.min(item.quantity + 1, 10) }
-            : item,
-        )
+        return current.map((item) => cartKey(item) === key
+          ? { ...item, quantity: Math.min(10, item.quantity + 1) }
+          : item)
       }
-
       return [...current, { productId: product.id, flavor, quantity: 1 }]
     })
     setCheckoutStep('cart')
     setCartOpen(true)
   }
 
-  const changeQuantity = (item: CartItem, delta: number) => {
-    const key = cartKey(item)
-    setCart((current) =>
-      current
-        .map((candidate) =>
-          cartKey(candidate) === key
-            ? { ...candidate, quantity: Math.max(0, Math.min(10, candidate.quantity + delta)) }
-            : candidate,
-        )
-        .filter((candidate) => candidate.quantity > 0),
-    )
+  const changeQuantity = (target: CartItem, delta: number) => {
+    setCart((current) => current
+      .map((item) => cartKey(item) === cartKey(target)
+        ? { ...item, quantity: Math.max(0, Math.min(10, item.quantity + delta)) }
+        : item)
+      .filter((item) => item.quantity > 0))
   }
 
-  const removeItem = (item: CartItem) => {
-    const key = cartKey(item)
-    setCart((current) => current.filter((candidate) => cartKey(candidate) !== key))
-  }
+  const removeItem = (target: CartItem) => setCart((current) => current.filter((item) => cartKey(item) !== cartKey(target)))
 
-  const startCheckout = () => {
-    setCheckoutError('')
-    setCheckoutStep('details')
-  }
-
-  const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
+  const handleCheckout = async (event: FormEvent) => {
     event.preventDefault()
     setCheckoutError('')
+    if (cart.length === 0) return
     setCheckingOut(true)
 
     try {
@@ -264,591 +333,253 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart,
-          customer,
+          customer: { ...customer, state: 'Madrid', country: 'ES' },
           referral,
+          couponCode: couponCode || null,
         }),
       })
-
-      const data = (await response.json()) as {
-        checkoutUrl?: string
-        error?: string
-        code?: string
-      }
-
+      const data = (await response.json()) as { checkoutUrl?: string; error?: string; code?: string }
       if (!response.ok || !data.checkoutUrl) {
-        if (data.code === 'SUMUP_NOT_CONFIGURED') {
-          throw new Error(
-            'El carrito ya está listo, pero falta conectar la clave API y el código de comercio de SumUp.',
-          )
-        }
-        throw new Error(data.error || 'No se pudo iniciar el pago.')
+        throw new Error(data.error || 'No se ha podido iniciar el pago.')
       }
-
-      window.location.assign(data.checkoutUrl)
+      window.location.href = data.checkoutUrl
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : 'No se pudo iniciar el pago.')
-    } finally {
+      setCheckoutError(error instanceof Error ? error.message : 'No se ha podido iniciar el pago.')
       setCheckingOut(false)
     }
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f3f0] text-zinc-950">
-      <div className="bg-zinc-950 px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-200">
-        Distribuidor oficial Beverly Nutrition · Pago seguro con SumUp
+    <main className="min-h-screen bg-[#F2F4F1] text-[#050706] selection:bg-[#22D65B] selection:text-black">
+      <div className="bg-[#050706] px-4 py-2.5 text-center text-[11px] font-black uppercase tracking-[0.16em] text-white">
+        Entrega en Madrid y municipios cercanos · <span className="text-[#22D65B]">Envío gratis desde 70 €</span>
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-black/5 bg-[#f4f3f0]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <a href="#" className="flex items-center gap-3" aria-label="GHC Nutrition, inicio">
-            <Image
-              src="/logo-limpio.png"
-              alt="GHC Nutrition"
-              width={90}
-              height={90}
-              priority
-              className="h-14 w-14 object-contain"
-            />
-            <div className="hidden sm:block">
-              <p className="text-sm font-black uppercase tracking-[0.12em]">GHC Nutrition</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                Health Through Strength
-              </p>
+      <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#F2F4F1]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <a href="#inicio" className="flex items-center gap-3">
+            <Image src="/logo-limpio.png" alt="GHC" width={150} height={60} priority className="h-11 w-auto object-contain" />
+            <div className="hidden border-l border-black/15 pl-3 sm:block">
+              <p className="text-[9px] font-black uppercase tracking-[0.24em] text-black/40">GHC</p>
+              <p className="text-sm font-black tracking-[-0.02em]">NUTRITION</p>
             </div>
           </a>
-
-          <nav className="hidden items-center gap-8 text-sm font-bold text-zinc-700 md:flex">
-            <a href="#catalogo" className="transition hover:text-orange-600">
-              Productos
-            </a>
-            <a href="#criterio" className="transition hover:text-orange-600">
-              Nuestro criterio
-            </a>
-            <a href="#oferta" className="transition hover:text-orange-600">
-              Oferta
-            </a>
+          <nav className="hidden items-center gap-8 text-sm font-bold lg:flex">
+            <a href="#catalogo" className="hover:text-[#159943]">Productos</a>
+            <a href="#beverly" className="hover:text-[#159943]">Beverly</a>
+            <a href="#como-comprar" className="hover:text-[#159943]">Envíos</a>
           </nav>
-
-          <button
-            type="button"
-            onClick={() => {
-              setCheckoutStep('cart')
-              setCartOpen(true)
-            }}
-            className="relative inline-flex h-11 items-center gap-2 rounded-full bg-zinc-950 px-4 text-sm font-black text-white transition hover:bg-orange-500"
-            aria-label={`Abrir carrito, ${itemCount} productos`}
-          >
+          <button type="button" onClick={() => setCartOpen(true)} className="relative inline-flex h-12 items-center gap-2 rounded-full bg-[#050706] px-5 text-sm font-black text-white transition hover:bg-[#159943]">
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Carrito</span>
-            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[11px] text-white">
-              {itemCount}
-            </span>
+            {itemCount > 0 && <span className="grid h-6 min-w-6 place-items-center rounded-full bg-[#22D65B] px-1.5 text-[11px] font-black text-black">{itemCount}</span>}
           </button>
         </div>
       </header>
 
-      <section className="relative overflow-hidden bg-zinc-950 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(249,115,22,0.24),transparent_34%),radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.08),transparent_32%)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
-          <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-zinc-200">
-              <Sparkles className="h-4 w-4 text-orange-400" />
-              Suplementación con criterio
+      <section id="inicio" className="relative overflow-hidden border-b border-black/[0.06]">
+        <div className="absolute left-[-12rem] top-[-12rem] h-[32rem] w-[32rem] rounded-full bg-[#22D65B]/10 blur-3xl" />
+        <div className="mx-auto grid min-h-[670px] max-w-7xl items-center gap-10 px-5 py-12 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-20">
+          <div className="relative z-10 max-w-2xl">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-[#22D65B]" /> Distribuidor oficial Beverly Nutrition
             </div>
-            <h1 className="max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-              No vendemos botes.
-              <span className="block text-orange-500">Recomendamos herramientas.</span>
+            <h1 className="max-w-[720px] text-[clamp(3.4rem,7vw,6.8rem)] font-black leading-[0.86] tracking-[-0.075em]">
+              Lo que tomas <span className="text-[#159943]">importa.</span>
             </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-300">
-              Una selección directa para rendimiento, recuperación y salud activa. Sin catálogo
-              infinito, sin ruido y con una compra mucho más sencilla.
+            <p className="mt-7 max-w-xl text-lg leading-8 text-black/60 md:text-xl">
+              Suplementación seleccionada con criterio. Producto real, ficha clara y compra sin ruido.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <a
-                href="#catalogo"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-black text-white transition hover:bg-orange-600"
-              >
-                Ver productos
-                <ArrowRight className="h-4 w-4" />
+              <a href="#catalogo" className="inline-flex h-13 items-center gap-2 rounded-full bg-[#050706] px-6 text-sm font-black text-white transition hover:bg-[#159943]">
+                Ver catálogo <ArrowRight className="h-4 w-4" />
               </a>
-              <button
-                type="button"
-                onClick={() => {
-                  setCheckoutStep('cart')
-                  setCartOpen(true)
-                }}
-                className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-sm font-black text-white transition hover:bg-white/10"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Mi carrito
+              <button type="button" onClick={() => setSelectedProduct(products[0])} className="inline-flex h-13 items-center gap-2 rounded-full border border-black/10 bg-white px-6 text-sm font-black transition hover:border-[#22D65B]">
+                Ficha del producto estrella
               </button>
+            </div>
+            <div className="mt-10 grid max-w-xl grid-cols-3 gap-3 border-t border-black/10 pt-6">
+              <div><p className="text-2xl font-black">1987</p><p className="mt-1 text-xs text-black/45">Beverly Nutrition</p></div>
+              <div><p className="text-2xl font-black">70 €</p><p className="mt-1 text-xs text-black/45">Envío gratis</p></div>
+              <div><p className="text-2xl font-black">Madrid</p><p className="mt-1 text-xs text-black/45">Zona de entrega</p></div>
             </div>
           </div>
 
-          <div id="criterio" className="grid content-center gap-3">
-            {[
-              ['01', 'Rendimiento', 'Productos seleccionados para apoyar entrenamientos exigentes.'],
-              ['02', 'Recuperación', 'Proteína y aminoácidos sin hacerte perderte entre cien opciones.'],
-              ['03', 'Salud activa', 'Complementos para una estrategia diaria simple y coherente.'],
-            ].map(([number, title, text]) => (
-              <div
-                key={number}
-                className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur"
-              >
-                <div className="flex gap-4">
-                  <span className="text-sm font-black text-orange-400">{number}</span>
-                  <div>
-                    <h2 className="font-black">{title}</h2>
-                    <p className="mt-1 text-sm leading-6 text-zinc-400">{text}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="oferta" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-[34px] bg-orange-500 text-white shadow-[0_30px_90px_rgba(249,115,22,0.24)]">
-          <div className="grid items-center gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-            <div className="flex min-h-[380px] items-center justify-center bg-white/95 p-8">
+          <div className="relative min-h-[520px] lg:min-h-[600px]">
+            <div className="absolute inset-x-6 bottom-8 top-8 rotate-[-2deg] rounded-[46px] bg-[#050706] shadow-[0_45px_110px_rgba(5,7,6,0.22)]" />
+            <div className="absolute right-0 top-0 h-36 w-36 rounded-full bg-[#22D65B] opacity-90" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center px-8 pb-12 pt-8">
               <Image
-                src={collagenPromo.image}
-                alt={collagenPromo.name}
-                width={560}
-                height={560}
-                sizes="(max-width: 1024px) 90vw, 40vw"
-                className="h-[320px] w-auto object-contain drop-shadow-2xl"
+                src={products[0].image}
+                alt={products[0].name}
+                width={780}
+                height={780}
+                priority
+                className="h-[390px] w-auto object-contain drop-shadow-[0_35px_34px_rgba(0,0,0,0.45)] md:h-[500px] lg:h-[530px]"
               />
             </div>
-            <div className="p-8 sm:p-10 lg:p-12">
-              <span className="inline-flex rounded-full bg-zinc-950 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
-                Oferta especial
-              </span>
-              <h2 className="mt-5 text-4xl font-black tracking-[-0.035em] sm:text-5xl">
-                2 cajas de colágeno
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-orange-50">
-                40 viales con Colágeno Peptan, vitamina C y ácido hialurónico.
-              </p>
-              <div className="mt-7 flex items-end gap-4">
-                <span className="text-5xl font-black">{formatPrice(collagenPromo.price)}</span>
-                <span className="pb-1 text-xl font-bold text-orange-100 line-through">
-                  {formatPrice(collagenPromo.regularPrice || collagenPromo.price)}
-                </span>
+            <div className="absolute bottom-0 left-0 z-20 max-w-[250px] rounded-[24px] bg-white p-5 shadow-xl">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#159943]">GHC Select · Producto estrella</p>
+              <p className="mt-2 text-lg font-black leading-tight">Whey Pro Concentrate 2kg</p>
+              <div className="mt-3 flex items-end justify-between">
+                <span className="text-2xl font-black">{formatPrice(products[0].price)}</span>
+                <button type="button" onClick={() => addToCart(products[0], products[0].flavors[0])} className="grid h-10 w-10 place-items-center rounded-full bg-[#22D65B] transition hover:scale-105"><Plus className="h-5 w-5" /></button>
               </div>
-              <button
-                type="button"
-                onClick={() => addToCart(collagenPromo, collagenPromo.flavors[0])}
-                className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-zinc-950 px-6 text-sm font-black text-white transition hover:bg-zinc-800"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Añadir pack al carrito
-              </button>
+            </div>
+            <div className="absolute right-2 top-16 z-20 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white backdrop-blur">
+              Lacprodan® · 2 kg
             </div>
           </div>
         </div>
       </section>
 
-      <section id="catalogo" className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="mb-9 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">Catálogo</p>
-            <h2 className="mt-2 text-4xl font-black tracking-[-0.035em] sm:text-5xl">
-              Compra por objetivo
-            </h2>
-            <p className="mt-3 max-w-2xl text-zinc-600">
-              Elige el producto, el sabor y añádelo al carrito. Puedes combinar varios productos y
-              hacer un único pago.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(categoryCopy) as Category[]).map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setActiveCategory(category)}
-                className={`rounded-full px-4 py-2 text-sm font-black transition ${
-                  activeCategory === category
-                    ? 'bg-zinc-950 text-white'
-                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} onAdd={addToCart} />
-          ))}
-        </div>
-      </section>
-
-      <section className="border-y border-zinc-200 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
+      <section className="border-b border-black/[0.06] bg-white">
+        <div className="mx-auto grid max-w-7xl gap-0 px-5 py-5 md:grid-cols-3 lg:px-8">
           {[
-            [ShieldCheck, 'Pago protegido', 'El pago final se procesa en el entorno seguro de SumUp.'],
-            [ShoppingBag, 'Un solo carrito', 'Combina productos, sabores y cantidades antes de pagar.'],
-            [Check, 'Selección directa', 'Un catálogo corto y fácil de entender, sin ruido innecesario.'],
-          ].map(([Icon, title, text]) => {
-            const ItemIcon = Icon as typeof ShieldCheck
-            return (
-              <div key={String(title)} className="flex gap-4 rounded-2xl bg-zinc-50 p-5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                  <ItemIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-black">{String(title)}</h3>
-                  <p className="mt-1 text-sm leading-6 text-zinc-500">{String(text)}</p>
-                </div>
-              </div>
-            )
+            [Truck, 'Entrega local', 'Madrid y municipios cercanos'],
+            [ShieldCheck, 'Pago seguro', 'Checkout protegido con SumUp'],
+            [PackageCheck, 'Catálogo verificado', 'Ficha basada en Beverly Nutrition'],
+          ].map(([Icon, title, copy]) => {
+            const Cmp = Icon as typeof Truck
+            return <div key={String(title)} className="flex items-center gap-4 border-black/10 px-2 py-4 md:border-r md:px-7 md:last:border-r-0"><Cmp className="h-5 w-5 text-[#159943]" /><div><p className="text-sm font-black">{String(title)}</p><p className="text-xs text-black/45">{String(copy)}</p></div></div>
           })}
         </div>
       </section>
 
-      <footer className="bg-zinc-950 text-zinc-300">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo-limpio.png"
-              alt="GHC Nutrition"
-              width={72}
-              height={72}
-              className="h-12 w-12 object-contain"
-            />
-            <div>
-              <p className="font-black text-white">GHC Nutrition</p>
-              <p className="text-xs text-zinc-500">Distribuidor oficial Beverly Nutrition</p>
+      <section id="beverly" className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
+        <div className="grid items-end gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#159943]">Una marca. Bien elegida.</p>
+            <h2 className="mt-4 text-4xl font-black tracking-[-0.05em] md:text-6xl">Ahora, Beverly.<br />Mañana, lo mejor.</h2>
+          </div>
+          <div className="max-w-2xl lg:justify-self-end">
+            <p className="text-lg leading-8 text-black/60">Mientras GHC Nutrition sea monomarca, no vamos a disimularlo: trabajamos con Beverly Nutrition y construimos la experiencia alrededor de su catálogo. La arquitectura queda preparada para incorporar nuevas marcas sin rehacer la tienda.</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {['Proteínas', 'Creatinas', 'Aminoácidos', 'Pre-entrenos', 'Vitaminas'].map((item) => <span key={item} className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-bold">{item}</span>)}
             </div>
           </div>
-          <p className="max-w-lg text-sm leading-6 text-zinc-500 md:text-right">
-            Suplementación deportiva seleccionada con un enfoque simple: producto, objetivo y
-            criterio.
-          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
+        <div className="relative overflow-hidden rounded-[38px] bg-[#050706] px-6 py-10 text-white md:px-10 md:py-12">
+          <div className="absolute -right-14 -top-20 h-64 w-64 rounded-full bg-[#22D65B]/20 blur-2xl" />
+          <div className="relative z-10 grid items-center gap-8 md:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <span className="inline-flex rounded-full bg-[#22D65B] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-black">Pack destacado</span>
+              <h2 className="mt-5 text-3xl font-black tracking-[-0.04em] md:text-5xl">40 viales. Una rutina.<br />{formatPrice(collagenPromo.price)}</h2>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">Pack de dos cajas de colágeno marino Peptan® con vitamina C, biotina, zinc y ácido hialurónico.</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button type="button" onClick={() => addToCart(collagenPromo, collagenPromo.flavors[0])} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#22D65B] px-6 text-sm font-black text-black">Añadir pack <Plus className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setSelectedProduct(collagenPromo)} className="inline-flex h-12 items-center rounded-full border border-white/20 px-6 text-sm font-black">Ver ficha</button>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <Image src={collagenPromo.image} alt={collagenPromo.name} width={560} height={420} className="max-h-72 w-auto object-contain drop-shadow-2xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="catalogo" className="border-y border-black/[0.06] bg-[#ECEFEA] py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#159943]">Catálogo GHC Nutrition</p>
+              <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] md:text-6xl">Elige por necesidad,<br />no por ruido.</h2>
+            </div>
+            <p className="max-w-md text-sm leading-6 text-black/55">Cada tarjeta abre una ficha con composición, dosis y modo de empleo. Mantendremos este formato cuando entren 20, 30 o 50 referencias.</p>
+          </div>
+
+          <div className="mt-10 flex flex-wrap gap-2">
+            {categories.map((category) => <button key={category} type="button" onClick={() => setActiveCategory(category)} className={`rounded-full px-5 py-2.5 text-sm font-black transition ${activeCategory === category ? 'bg-[#050706] text-white' : 'border border-black/10 bg-white text-black hover:border-[#22D65B]'}`}>{category}</button>)}
+          </div>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredProducts.map((product) => <ProductCard key={product.id} product={product} onAdd={addToCart} onDetails={setSelectedProduct} />)}
+          </div>
+        </div>
+      </section>
+
+      <section id="como-comprar" className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[34px] bg-white p-8 md:p-10">
+            <Truck className="h-7 w-7 text-[#159943]" />
+            <p className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Entrega actual</p>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] md:text-4xl">Madrid primero.<br />España después.</h2>
+            <p className="mt-4 max-w-lg text-sm leading-6 text-black/55">Por ahora aceptamos pedidos para Madrid y municipios de la Comunidad de Madrid. El checkout valida el código postal antes de cobrar.</p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-[#F2F4F1] p-5"><p className="text-2xl font-black">5,90 €</p><p className="mt-1 text-xs text-black/45">Pedidos inferiores a 70 €</p></div>
+              <div className="rounded-2xl bg-[#22D65B] p-5"><p className="text-2xl font-black">Gratis</p><p className="mt-1 text-xs text-black/60">Desde 70 €</p></div>
+            </div>
+          </div>
+          <div className="rounded-[34px] bg-[#050706] p-8 text-white md:p-10">
+            <Gift className="h-7 w-7 text-[#22D65B]" />
+            <p className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Programa Recomienda GHC</p>
+            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] md:text-4xl">Tu amigo compra.<br /><span className="text-[#22D65B]">Tú ganas 10%.</span></h2>
+            <p className="mt-4 max-w-lg text-sm leading-6 text-white/55">Después de comprar recibirás un código personal para compartir. Cuando un amigo haga una compra pagada con tu código, se genera un cupón del 10% para tu siguiente pedido.</p>
+            <div className="mt-7 space-y-3 text-sm">
+              {['Solo se premian compras pagadas', 'Cupón personal de un solo uso', 'Validez prevista: 90 días'].map((item) => <div key={item} className="flex items-center gap-3"><CircleCheck className="h-4 w-4 text-[#22D65B]" /><span className="text-white/75">{item}</span></div>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-black/[0.07] bg-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 md:grid-cols-[1fr_auto] lg:px-8">
+          <div className="flex items-center gap-4"><Image src="/logo-limpio.png" alt="GHC" width={130} height={50} className="h-10 w-auto" /><div className="border-l border-black/10 pl-4"><p className="font-black">GHC Nutrition</p><p className="text-xs text-black/45">Suplementación con criterio.</p></div></div>
+          <div className="text-xs leading-6 text-black/45 md:text-right"><p>Distribuidor oficial Beverly Nutrition</p><p>Entregas en Madrid y municipios cercanos</p></div>
         </div>
       </footer>
 
-      {cartOpen && (
-        <div className="fixed inset-0 z-50">
-          <button
-            type="button"
-            aria-label="Cerrar carrito"
-            onClick={() => setCartOpen(false)}
-            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-          />
+      {selectedProduct && <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAdd={addToCart} />}
 
-          <aside
-            className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl"
-            aria-label="Carrito de compra"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 sm:px-6">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
-                  {checkoutStep === 'cart' ? 'Tu selección' : 'Datos de entrega'}
-                </p>
-                <h2 className="text-2xl font-black">
-                  {checkoutStep === 'cart' ? 'Carrito' : 'Finalizar compra'}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCartOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200"
-                aria-label="Cerrar carrito"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      {cartOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm" onMouseDown={() => setCartOpen(false)}>
+          <aside className="ml-auto flex h-full w-full max-w-[500px] flex-col bg-[#F2F4F1] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-black/[0.07] px-5 py-5">
+              <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#159943]">GHC Nutrition</p><h2 className="text-2xl font-black tracking-[-0.04em]">{checkoutStep === 'cart' ? 'Tu carrito' : 'Datos de entrega'}</h2></div>
+              <button type="button" onClick={() => setCartOpen(false)} className="grid h-10 w-10 place-items-center rounded-full bg-white"><X className="h-5 w-5" /></button>
             </div>
 
             {checkoutStep === 'cart' ? (
               <>
-                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+                <div className="flex-1 overflow-y-auto p-5">
                   {detailedCart.length === 0 ? (
-                    <div className="flex h-full flex-col items-center justify-center text-center">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                        <ShoppingBag className="h-7 w-7" />
-                      </div>
-                      <h3 className="mt-5 text-xl font-black">Tu carrito está vacío</h3>
-                      <p className="mt-2 max-w-xs text-sm leading-6 text-zinc-500">
-                        Añade los productos que quieras y los pagarás todos juntos.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setCartOpen(false)}
-                        className="mt-6 rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-black text-white"
-                      >
-                        Seguir comprando
-                      </button>
-                    </div>
+                    <div className="grid min-h-72 place-items-center text-center"><div><ShoppingBag className="mx-auto h-8 w-8 text-black/25" /><p className="mt-4 font-black">El carrito está vacío</p><p className="mt-1 text-sm text-black/45">Añade productos y volverán a aparecer aquí.</p></div></div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {detailedCart.map((item) => (
-                        <div
-                          key={cartKey(item)}
-                          className="grid grid-cols-[82px_1fr] gap-4 rounded-2xl border border-zinc-200 p-3"
-                        >
-                          <div className="flex h-20 items-center justify-center rounded-xl bg-zinc-50 p-2">
-                            <Image
-                              src={item.product.image}
-                              alt={item.product.name}
-                              width={100}
-                              height={100}
-                              className="h-16 w-16 object-contain"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex justify-between gap-3">
-                              <div>
-                                <h3 className="text-sm font-black leading-5">{item.product.name}</h3>
-                                <p className="mt-1 text-xs text-zinc-500">{item.flavor}</p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeItem(item)}
-                                className="h-8 w-8 shrink-0 rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900"
-                                aria-label={`Eliminar ${item.product.name}`}
-                              >
-                                <Trash2 className="mx-auto h-4 w-4" />
-                              </button>
-                            </div>
-
-                            <div className="mt-3 flex items-center justify-between">
-                              <div className="inline-flex items-center rounded-full border border-zinc-200">
-                                <button
-                                  type="button"
-                                  onClick={() => changeQuantity(item, -1)}
-                                  className="flex h-8 w-8 items-center justify-center"
-                                  aria-label="Restar una unidad"
-                                >
-                                  <Minus className="h-3.5 w-3.5" />
-                                </button>
-                                <span className="min-w-8 text-center text-sm font-black">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => changeQuantity(item, 1)}
-                                  className="flex h-8 w-8 items-center justify-center"
-                                  aria-label="Añadir una unidad"
-                                >
-                                  <Plus className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                              <span className="font-black">
-                                {formatPrice(item.product.price * item.quantity)}
-                              </span>
-                            </div>
-                          </div>
+                        <div key={cartKey(item)} className="flex gap-4 rounded-2xl bg-white p-3">
+                          <div className="grid h-24 w-24 shrink-0 place-items-center rounded-xl bg-[#F6F7F4] p-2"><Image src={item.product.image} alt={item.product.name} width={110} height={110} className="h-20 w-auto object-contain" /></div>
+                          <div className="min-w-0 flex-1"><p className="font-black leading-tight">{item.product.name}</p><p className="mt-1 truncate text-xs text-black/45">{item.flavor}</p><div className="mt-3 flex items-center justify-between gap-2"><div className="flex items-center rounded-full border border-black/10"><button type="button" onClick={() => changeQuantity(item, -1)} className="grid h-8 w-8 place-items-center"><Minus className="h-3 w-3" /></button><span className="w-6 text-center text-xs font-black">{item.quantity}</span><button type="button" onClick={() => changeQuantity(item, 1)} className="grid h-8 w-8 place-items-center"><Plus className="h-3 w-3" /></button></div><div className="flex items-center gap-2"><span className="font-black">{formatPrice(item.product.price * item.quantity)}</span><button type="button" onClick={() => removeItem(item)} className="text-black/30 hover:text-red-500"><Trash2 className="h-4 w-4" /></button></div></div></div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {detailedCart.length > 0 && (
-                  <div className="border-t border-zinc-200 bg-zinc-50 px-5 py-5 sm:px-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="text-sm font-bold text-zinc-500">Total productos</span>
-                      <span className="text-3xl font-black tracking-tight">{formatPrice(total)}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={startCheckout}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white transition hover:bg-orange-600"
-                    >
-                      Continuar al pago
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
-                      El importe final se vuelve a calcular en el servidor para evitar manipulaciones.
-                    </p>
-                  </div>
-                )}
+                {detailedCart.length > 0 && <div className="border-t border-black/[0.07] bg-white p-5">
+                  {amountForFreeShipping > 0 ? <div className="mb-4 rounded-xl bg-[#F2F4F1] p-3 text-xs font-semibold text-black/60">Te faltan <strong className="text-black">{formatPrice(amountForFreeShipping)}</strong> para el envío gratis.</div> : <div className="mb-4 flex items-center gap-2 rounded-xl bg-[#22D65B]/15 p-3 text-xs font-black text-[#0d7d34]"><Check className="h-4 w-4" /> Tienes envío gratis.</div>}
+                  <div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-black/50">Productos</span><span className="font-bold">{formatPrice(subtotal)}</span></div><div className="flex justify-between"><span className="text-black/50">Envío</span><span className="font-bold">{shipping === 0 ? 'Gratis' : formatPrice(shipping)}</span></div><div className="flex justify-between border-t border-black/[0.07] pt-3 text-lg"><span className="font-black">Total previo</span><span className="font-black">{formatPrice(subtotal + shipping)}</span></div></div>
+                  <button type="button" onClick={() => setCheckoutStep('details')} className="mt-5 inline-flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#050706] text-sm font-black text-white hover:bg-[#159943]">Continuar <ArrowRight className="h-4 w-4" /></button>
+                </div>}
               </>
             ) : (
-              <form onSubmit={submitCheckout} className="flex min-h-0 flex-1 flex-col">
-                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutStep('cart')}
-                    className="mb-5 text-sm font-black text-zinc-500 transition hover:text-zinc-950"
-                  >
-                    ← Volver al carrito
-                  </button>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Nombre
-                      </span>
-                      <input
-                        required
-                        value={customer.firstName}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, firstName: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="given-name"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Apellidos
-                      </span>
-                      <input
-                        required
-                        value={customer.lastName}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, lastName: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="family-name"
-                      />
-                    </label>
-                    <label className="block sm:col-span-2">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Email
-                      </span>
-                      <input
-                        required
-                        type="email"
-                        value={customer.email}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, email: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="email"
-                      />
-                    </label>
-                    <label className="block sm:col-span-2">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Teléfono
-                      </span>
-                      <input
-                        required
-                        value={customer.phone}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, phone: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="tel"
-                      />
-                    </label>
-                    <label className="block sm:col-span-2">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Dirección
-                      </span>
-                      <input
-                        required
-                        value={customer.addressLine}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, addressLine: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="street-address"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Ciudad
-                      </span>
-                      <input
-                        required
-                        value={customer.city}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, city: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="address-level2"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Código postal
-                      </span>
-                      <input
-                        required
-                        value={customer.postalCode}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, postalCode: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="postal-code"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        Provincia / región
-                      </span>
-                      <input
-                        required
-                        value={customer.state}
-                        onChange={(event) =>
-                          setCustomer((current) => ({ ...current, state: event.target.value }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
-                        autoComplete="address-level1"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
-                        País
-                      </span>
-                      <input
-                        required
-                        maxLength={2}
-                        value={customer.country}
-                        onChange={(event) =>
-                          setCustomer((current) => ({
-                            ...current,
-                            country: event.target.value.toUpperCase(),
-                          }))
-                        }
-                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm uppercase outline-none focus:border-orange-500"
-                        autoComplete="country"
-                        aria-describedby="country-help"
-                      />
-                      <span id="country-help" className="mt-1 block text-[11px] text-zinc-400">
-                        Código de 2 letras, por ejemplo ES.
-                      </span>
-                    </label>
+              <form onSubmit={handleCheckout} className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-5">
+                  <button type="button" onClick={() => setCheckoutStep('cart')} className="mb-5 text-xs font-black text-black/50 hover:text-black">← Volver al carrito</button>
+                  <div className="mb-5 rounded-2xl border border-[#22D65B]/25 bg-[#22D65B]/10 p-4"><p className="text-xs font-black text-[#0d7d34]">Zona de entrega actual</p><p className="mt-1 text-xs leading-5 text-black/55">Madrid y municipios de la Comunidad de Madrid. Validaremos el código postal antes de crear el pago.</p></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[['firstName','Nombre'],['lastName','Apellidos'],['email','Email'],['phone','Teléfono'],['addressLine','Dirección'],['city','Municipio'],['postalCode','Código postal']].map(([key,label]) => (
+                      <label key={key} className={(key === 'addressLine' || key === 'city') ? 'sm:col-span-2' : ''}><span className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-black/40">{label}</span><input required type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'} inputMode={key === 'postalCode' ? 'numeric' : undefined} maxLength={key === 'postalCode' ? 5 : undefined} value={customer[key as keyof CustomerForm]} onChange={(e) => setCustomer((current) => ({ ...current, [key]: e.target.value }))} className="h-12 w-full rounded-xl border border-black/10 bg-white px-4 text-sm font-semibold outline-none transition focus:border-[#22D65B] focus:ring-2 focus:ring-[#22D65B]/10" /></label>
+                    ))}
                   </div>
-
-                  {referral && (
-                    <div className="mt-5 rounded-xl bg-zinc-100 px-4 py-3 text-xs text-zinc-600">
-                      Referencia asociada: <strong>{referral}</strong>
-                    </div>
-                  )}
-
-                  {checkoutError && (
-                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
-                      {checkoutError}
-                    </div>
-                  )}
+                  <label className="mt-5 block"><span className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.14em] text-black/40">Cupón de descuento</span><input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="Ej. GHC10-XXXXXXXX" className="h-12 w-full rounded-xl border border-black/10 bg-white px-4 text-sm font-bold uppercase outline-none focus:border-[#22D65B]" /><p className="mt-1.5 text-[11px] leading-4 text-black/40">Los cupones por recomendación están vinculados al email que los ha ganado.</p></label>
+                  {referral && <div className="mt-4 flex items-start gap-2 rounded-xl bg-white p-3 text-xs text-black/55"><Gift className="mt-0.5 h-4 w-4 shrink-0 text-[#159943]" /><span>Compra asociada al código de recomendación <strong>{referral}</strong>. Si el pedido se paga, premiaremos a quien te lo compartió.</span></div>}
+                  {checkoutError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{checkoutError}</p>}
                 </div>
-
-                <div className="border-t border-zinc-200 bg-zinc-50 px-5 py-5 sm:px-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="text-sm font-bold text-zinc-500">Total</span>
-                    <span className="text-3xl font-black">{formatPrice(total)}</span>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={checkingOut}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {checkingOut ? 'Preparando pago…' : 'Pagar todo con SumUp'}
-                    {!checkingOut && <ShieldCheck className="h-4 w-4" />}
-                  </button>
-                  <p className="mt-3 text-center text-[11px] leading-5 text-zinc-500">
-                    Tus datos de tarjeta no pasan por GHC Nutrition. El pago se completa en SumUp.
-                  </p>
-                </div>
+                <div className="border-t border-black/[0.07] bg-white p-5"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs text-black/45">Total antes de cupón</p><p className="text-xl font-black">{formatPrice(subtotal + shipping)}</p></div><div className="flex items-center gap-2 text-xs font-bold text-black/45"><ShieldCheck className="h-4 w-4 text-[#159943]" /> SumUp</div></div><button disabled={checkingOut} type="submit" className="inline-flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#050706] text-sm font-black text-white transition hover:bg-[#159943] disabled:cursor-wait disabled:opacity-60">{checkingOut ? 'Preparando pago…' : 'Ir al pago seguro'} <ArrowRight className="h-4 w-4" /></button></div>
               </form>
             )}
           </aside>
