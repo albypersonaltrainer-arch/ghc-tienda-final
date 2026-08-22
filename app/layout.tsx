@@ -3,26 +3,40 @@ import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'] })
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+})
 
 export const metadata: Metadata = {
-  title: 'GHC Nutrition | Suplementación con criterio',
-  description: 'Suplementación deportiva seleccionada por GHC: rendimiento, recuperación y salud activa. Envío gratis desde 70 €.',
-  applicationName: 'GHC Nutrition',
-  metadataBase: new URL('https://ghcnutrition.com'),
+  metadataBase: new URL('https://www.ghcnutrition.com'),
+  title: {
+    default: 'GHC Nutrition | Suplementación deportiva con criterio',
+    template: '%s | GHC Nutrition',
+  },
+  description:
+    'Suplementación deportiva seleccionada para rendimiento, recuperación y salud activa. Distribuidor oficial Beverly Nutrition.',
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: 'GHC Nutrition | Suplementación con criterio',
-    description: 'No vendemos botes. Recomendamos herramientas.',
-    type: 'website',
-    locale: 'es_ES',
+    title: 'GHC Nutrition',
+    description: 'Suplementación deportiva con criterio.',
+    url: 'https://www.ghcnutrition.com',
     siteName: 'GHC Nutrition',
+    locale: 'es_ES',
+    type: 'website',
   },
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
     <html lang="es">
-      <body className={`${geist.className} antialiased`}>
+      <body className={`${geist.variable} font-sans antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
