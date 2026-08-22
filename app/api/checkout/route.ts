@@ -1,6 +1,21 @@
 import { randomUUID } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  FREE_SHIPPING_THRESHOLD,
+  getShippingCost,
+  isSupportedPostalCode,
+  normalizeCode,
+} from '@/lib/commerce'
 import { getProduct } from '@/lib/catalog'
+import {
+  createPendingOrder,
+  getActiveCoupon,
+  reserveCoupon,
+  settleOrder,
+  updateOrder,
+  upsertCustomer,
+} from '@/lib/order-store'
+import { isCommerceDatabaseConfigured } from '@/lib/supabase-rest'
 
 export const runtime = 'nodejs'
 
@@ -29,12 +44,16 @@ function clean(value: unknown, maxLength = 120) {
 function buildOrderDescription(
   items: Array<{ name: string; flavor: string; quantity: number }>,
   referral: string,
+  couponCode: string,
 ) {
   const products = items
     .map((item) => `${item.quantity}x ${item.name} (${item.flavor})`)
     .join('; ')
 
-  return `${products}${referral ? ` | Ref: ${referral}` : ''}`.slice(0, 255)
+  return [products, referral ? `Ref: ${referral}` : '', couponCode ? `Cupón: ${couponCode}` : '']
+    .filter(Boolean)
+    .join(' | ')
+    .slice(0, 255)
 }
 
 export async function POST(request: NextRequest) {
@@ -51,10 +70,21 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  if (!isCommerceDatabaseConfigured()) {
+    return NextResponse.json(
+      {
+        error: 'La base de datos de pedidos todavía no está conectada.',
+        code: 'SUPABASE_NOT_CONFIGURED',
+      },
+      { status: 503 },
+    )
+  }
+
   let body: {
     items?: CheckoutItem[]
     customer?: CustomerInput
     referral?: string | null
+    couponCode?: string | null
   }
 
   try {
@@ -109,9 +139,9 @@ export async function POST(request: NextRequest) {
   const phone = clean(customer.phone, 40)
   const addressLine = clean(customer.addressLine, 160)
   const city = clean(customer.city, 100)
-  const postalCode = clean(customer.postalCode, 24)
-  const state = clean(customer.state, 100)
-  const country = clean(customer.country, 2).toUpperCase()
+  const postalCode = clean(customer.postalCode, 5)
+  const state = clean(customer.state, 100) || 'Madrid'
+  const country = (clean(customer.country, 2) || 'ES').toUpperCase()
 
   if (
     !firstName ||
@@ -121,42 +151,104 @@ export async function POST(request: NextRequest) {
     !phone ||
     !addressLine ||
     !city ||
-    !postalCode ||
-    !state ||
-    !/^[A-Z]{2}$/.test(country)
+    !postalCode
   ) {
     return NextResponse.json(
-      { error: 'Revisa los datos de contacto y entrega.' },
+      { error: 'Revisa los datos básicos de contacto y entrega.' },
       { status: 400 },
     )
   }
 
-  const totalCents = normalizedItems.reduce(
+  if (country !== 'ES' || !isSupportedPostalCode(postalCode)) {
+    return NextResponse.json(
+      {
+        error: 'Por ahora GHC Nutrition entrega únicamente en Madrid y municipios cercanos.',
+        code: 'OUTSIDE_SERVICE_AREA',
+      },
+      { status: 400 },
+    )
+  }
+
+  const subtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
     0,
   )
 
-  if (totalCents <= 0 || totalCents > 500_000) {
+  if (subtotalCents <= 0 || subtotalCents > 500_000) {
     return NextResponse.json({ error: 'El importe del pedido no es válido.' }, { status: 400 })
   }
 
-  const referral = clean(body.referral, 80)
+  const shippingCents = Math.round(getShippingCost(subtotalCents / 100) * 100)
+  const referral = normalizeCode(clean(body.referral, 40))
+  const couponCode = normalizeCode(clean(body.couponCode, 40))
   const checkoutReference = `GHC-${Date.now()}-${randomUUID().slice(0, 8)}`
-  const customerId = `ghc_${randomUUID().replaceAll('-', '')}`
-  const description = buildOrderDescription(normalizedItems, referral)
+  const sumupCustomerId = `ghc_${randomUUID().replaceAll('-', '')}`
 
-  const authorization = {
-    Authorization: `Bearer ${apiKey}`,
-    'Content-Type': 'application/json',
-  }
+  let order: Awaited<ReturnType<typeof createPendingOrder>> | null = null
 
   try {
+    const customerRecord = await upsertCustomer({ firstName, lastName, email, phone })
+
+    const coupon = couponCode ? await getActiveCoupon(couponCode, customerRecord.id) : null
+    if (couponCode && !coupon) {
+      return NextResponse.json(
+        { error: 'El cupón no es válido, no pertenece a este email o ya ha sido utilizado.' },
+        { status: 400 },
+      )
+    }
+
+    const discountCents = coupon
+      ? Math.floor((subtotalCents * coupon.percent) / 100)
+      : 0
+    const totalCents = subtotalCents + shippingCents - discountCents
+
+    if (totalCents <= 0) {
+      return NextResponse.json({ error: 'El total del pedido no es válido.' }, { status: 400 })
+    }
+
+    order = await createPendingOrder({
+      checkoutReference,
+      customerId: customerRecord.id,
+      subtotalCents,
+      shippingCents,
+      discountCents,
+      totalCents,
+      couponId: coupon?.id || null,
+      couponCode: coupon?.code || null,
+      referralCode: referral || null,
+      addressLine,
+      city,
+      postalCode,
+      state,
+      country,
+      items: normalizedItems.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        flavor: item.flavor,
+        quantity: item.quantity,
+        unitPriceCents: Math.round(item.unitPrice * 100),
+      })),
+    })
+
+    if (coupon && !(await reserveCoupon(coupon.id, order.id))) {
+      await updateOrder(order.id, { status: 'CANCELLED' })
+      return NextResponse.json(
+        { error: 'Ese cupón acaba de ser utilizado en otro pedido.' },
+        { status: 409 },
+      )
+    }
+
+    const authorization = {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    }
+
     const customerResponse = await fetch('https://api.sumup.com/v0.1/customers', {
       method: 'POST',
       headers: authorization,
       cache: 'no-store',
       body: JSON.stringify({
-        customer_id: customerId,
+        customer_id: sumupCustomerId,
         personal_details: {
           first_name: firstName,
           last_name: lastName,
@@ -176,6 +268,7 @@ export async function POST(request: NextRequest) {
     if (!customerResponse.ok) {
       const detail = await customerResponse.text()
       console.error('SumUp customer creation failed', customerResponse.status, detail)
+      await settleOrder(order, 'FAILED')
       return NextResponse.json(
         { error: 'No se pudieron registrar los datos del pedido en SumUp.' },
         { status: 502 },
@@ -184,6 +277,9 @@ export async function POST(request: NextRequest) {
 
     const redirectUrl = new URL('/checkout/resultado', request.nextUrl.origin)
     redirectUrl.searchParams.set('ref', checkoutReference)
+
+    const webhookUrl = new URL('/api/sumup/webhook', request.nextUrl.origin)
+    const description = buildOrderDescription(normalizedItems, referral, coupon?.code || '')
 
     const checkoutResponse = await fetch('https://api.sumup.com/v0.1/checkouts', {
       method: 'POST',
@@ -195,8 +291,9 @@ export async function POST(request: NextRequest) {
         currency: 'EUR',
         merchant_code: merchantCode,
         description,
-        customer_id: customerId,
+        customer_id: sumupCustomerId,
         redirect_url: redirectUrl.toString(),
+        return_url: webhookUrl.toString(),
         hosted_checkout: {
           enabled: true,
         },
@@ -210,24 +307,38 @@ export async function POST(request: NextRequest) {
       message?: string
     }
 
-    if (!checkoutResponse.ok || !checkout.hosted_checkout_url) {
+    if (!checkoutResponse.ok || !checkout.hosted_checkout_url || !checkout.id) {
       console.error('SumUp checkout creation failed', checkoutResponse.status, checkout)
+      await settleOrder(order, 'FAILED')
       return NextResponse.json(
         { error: 'SumUp no ha podido crear el pago.' },
         { status: 502 },
       )
     }
 
+    await updateOrder(order.id, { sumup_checkout_id: checkout.id })
+
     return NextResponse.json({
       checkoutUrl: checkout.hosted_checkout_url,
       checkoutId: checkout.id,
       checkoutReference,
+      subtotal: subtotalCents / 100,
+      shipping: shippingCents / 100,
+      discount: discountCents / 100,
       amount: totalCents / 100,
+      freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
     })
   } catch (error) {
     console.error('Checkout error', error)
+    if (order) {
+      try {
+        await settleOrder(order, 'FAILED')
+      } catch (settleError) {
+        console.error('Could not mark failed order', settleError)
+      }
+    }
     return NextResponse.json(
-      { error: 'No se ha podido conectar con SumUp.' },
+      { error: 'No se ha podido iniciar el pedido.' },
       { status: 502 },
     )
   }
