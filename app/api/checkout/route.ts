@@ -42,6 +42,19 @@ function clean(value: unknown, maxLength = 120) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 }
 
+function trainerCodeFromReferer(request: NextRequest) {
+  const referer = request.headers.get('referer')
+  if (!referer) return ''
+
+  try {
+    const url = new URL(referer)
+    if (url.origin !== request.nextUrl.origin) return ''
+    return normalizeCode(url.searchParams.get('coach') || '')
+  } catch {
+    return ''
+  }
+}
+
 function buildOrderDescription(
   items: Array<{ name: string; flavor: string; quantity: number }>,
   referral: string,
@@ -177,8 +190,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Los precios llegan siempre del catálogo del servidor: nunca confiamos en importes del navegador.
-  // Esta base es el PVP de producto antes de cupones y excluye portes; es también la base de comisión.
+  // El catálogo del servidor es la única fuente de importes.
+  // subtotalCents es PVP de producto antes de cupones y excluye portes: esa es también
+  // la base de la comisión del entrenador, tal como se ha definido comercialmente.
   const subtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
     0,
@@ -191,7 +205,8 @@ export async function POST(request: NextRequest) {
   const shippingCents = Math.round(getShippingCost(subtotalCents / 100) * 100)
   const referral = normalizeCode(clean(body.referral, 40))
   const couponCode = normalizeCode(clean(body.couponCode, 40))
-  const requestedTrainerCode = normalizeCode(clean(body.trainerCode, 40))
+  const requestedTrainerCode =
+    normalizeCode(clean(body.trainerCode, 40)) || trainerCodeFromReferer(request)
   const checkoutReference = `GHC-${Date.now()}-${randomUUID().slice(0, 8)}`
   const sumupCustomerId = `ghc_${randomUUID().replaceAll('-', '')}`
 
@@ -208,7 +223,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Un enlace de entrenador nunca bloquea la venta: si el código no está activo,
+    // El enlace del entrenador nunca bloquea la venta: si el código ya no está activo,
     // el checkout continúa sin atribución ni comisión.
     const trainer = requestedTrainerCode
       ? await getActiveTrainerPartner(requestedTrainerCode)
