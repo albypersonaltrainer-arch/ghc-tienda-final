@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import HeroCarouselV4 from '@/app/components/HeroCarouselV4'
 import CheckoutLegalGuard from '@/app/components/CheckoutLegalGuard'
+import ProductComplianceGuard from '@/app/components/ProductComplianceGuard'
 import './globals.css'
 
 const geist = Geist({
@@ -41,6 +42,7 @@ export default function RootLayout({
         {children}
         <HeroCarouselV4 />
         <CheckoutLegalGuard />
+        <ProductComplianceGuard />
       </body>
     </html>
   )
