@@ -14,6 +14,7 @@ create table if not exists public.customers (
   updated_at timestamptz not null default now()
 );
 
+-- Programa cliente -> cliente. Genera cupones, no comisiones en efectivo.
 create table if not exists public.referral_codes (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
@@ -25,6 +26,20 @@ create table if not exists public.referral_codes (
 create unique index if not exists referral_codes_one_active_per_customer
   on public.referral_codes(owner_customer_id)
   where active = true;
+
+-- Entrenadores / colaboradores comerciales.
+-- El código se comparte mediante enlaces ?coach=CODIGO.
+create table if not exists public.trainer_partners (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null,
+  email citext,
+  commission_percent integer not null default 10
+    check (commission_percent between 0 and 50),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
@@ -40,6 +55,14 @@ create table if not exists public.orders (
   coupon_id uuid,
   coupon_code text,
   referral_code text,
+  trainer_partner_id uuid references public.trainer_partners(id) on delete set null,
+  trainer_code text,
+  trainer_commission_percent integer
+    check (trainer_commission_percent is null or trainer_commission_percent between 0 and 50),
+  trainer_commission_base_cents integer
+    check (trainer_commission_base_cents is null or trainer_commission_base_cents >= 0),
+  trainer_commission_cents integer
+    check (trainer_commission_cents is null or trainer_commission_cents >= 0),
   address_line text not null,
   city text not null,
   postal_code text not null,
@@ -54,6 +77,9 @@ create index if not exists orders_customer_created_idx
   on public.orders(customer_id, created_at desc);
 create index if not exists orders_status_idx
   on public.orders(status);
+create index if not exists orders_trainer_created_idx
+  on public.orders(trainer_partner_id, created_at desc)
+  where trainer_partner_id is not null;
 
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
@@ -68,6 +94,25 @@ create table if not exists public.order_items (
 
 create index if not exists order_items_order_idx
   on public.order_items(order_id);
+
+-- Libro mayor de comisiones. Solo nace cuando un pedido pasa a PAID.
+-- amount_cents se congela con el porcentaje que tenía el entrenador al crear el checkout.
+create table if not exists public.trainer_commissions (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null unique references public.orders(id) on delete restrict,
+  trainer_partner_id uuid not null references public.trainer_partners(id) on delete restrict,
+  commission_base_cents integer not null check (commission_base_cents >= 0),
+  commission_percent integer not null check (commission_percent between 0 and 50),
+  amount_cents integer not null check (amount_cents >= 0),
+  status text not null default 'earned'
+    check (status in ('earned', 'paid', 'cancelled')),
+  earned_at timestamptz not null default now(),
+  paid_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists trainer_commissions_partner_status_idx
+  on public.trainer_commissions(trainer_partner_id, status, earned_at desc);
 
 create table if not exists public.reward_coupons (
   id uuid primary key default gen_random_uuid(),
@@ -95,21 +140,27 @@ alter table public.orders
   add constraint orders_coupon_id_fkey
   foreign key (coupon_id) references public.reward_coupons(id) on delete set null;
 
--- Defensa en profundidad: el navegador no lee ni escribe datos personales.
+-- Defensa en profundidad: el navegador no lee ni escribe datos personales/comerciales.
 alter table public.customers enable row level security;
 alter table public.referral_codes enable row level security;
+alter table public.trainer_partners enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
+alter table public.trainer_commissions enable row level security;
 alter table public.reward_coupons enable row level security;
 
 revoke all on table public.customers from anon, authenticated;
 revoke all on table public.referral_codes from anon, authenticated;
+revoke all on table public.trainer_partners from anon, authenticated;
 revoke all on table public.orders from anon, authenticated;
 revoke all on table public.order_items from anon, authenticated;
+revoke all on table public.trainer_commissions from anon, authenticated;
 revoke all on table public.reward_coupons from anon, authenticated;
 
 grant select, insert, update, delete on table public.customers to service_role;
 grant select, insert, update, delete on table public.referral_codes to service_role;
+grant select, insert, update, delete on table public.trainer_partners to service_role;
 grant select, insert, update, delete on table public.orders to service_role;
 grant select, insert, update, delete on table public.order_items to service_role;
+grant select, insert, update, delete on table public.trainer_commissions to service_role;
 grant select, insert, update, delete on table public.reward_coupons to service_role;
