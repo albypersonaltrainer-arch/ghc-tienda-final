@@ -124,11 +124,7 @@ function splitSections(html: string) {
     const start = (match.index || 0) + match[0].length
     const end = index + 1 < matches.length ? matches[index + 1].index || html.length : html.length
     const raw = html.slice(start, end)
-    sections.push({
-      heading: stripTags(match[2]),
-      raw,
-      text: stripTags(raw),
-    })
+    sections.push({ heading: stripTags(match[2]), raw, text: stripTags(raw) })
   })
 
   return sections
@@ -145,7 +141,7 @@ function findSection(
 }
 
 function parseTableRows(raw: string) {
-  const rows = [...raw.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+  return [...raw.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
     .map((row) => {
       const cells = [...row[1].matchAll(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi)]
         .map((cell) => stripTags(cell[1]))
@@ -154,8 +150,7 @@ function parseTableRows(raw: string) {
       return { label: cells[0], value: cells.slice(1).join(' · ') }
     })
     .filter((row): row is { label: string; value: string } => Boolean(row))
-
-  return rows.slice(0, 40)
+    .slice(0, 40)
 }
 
 function extractAllergens(rawIngredients: string) {
@@ -163,7 +158,6 @@ function extractAllergens(rawIngredients: string) {
     .map((match) => stripTags(match[1]))
     .map((value) => value.replace(/[.:;,]$/g, '').trim())
     .filter(Boolean)
-
   return [...new Set(bold)].slice(0, 12)
 }
 
@@ -215,18 +209,11 @@ export async function GET(request: NextRequest) {
   const flavor = (request.nextUrl.searchParams.get('flavor') || '').trim().slice(0, 100)
   const normalizedName = normalize(productName)
 
-  if (!productName) {
-    return NextResponse.json({ error: 'Producto no indicado.' }, { status: 400 })
-  }
+  if (!productName) return NextResponse.json({ error: 'Producto no indicado.' }, { status: 400 })
 
   const family = FAMILY_ALIASES[normalizedName]
   if (!family) {
-    return NextResponse.json({
-      legalReady: false,
-      reason: 'PRODUCT_NOT_MAPPED',
-      productName,
-      flavor,
-    })
+    return NextResponse.json({ legalReady: false, reason: 'PRODUCT_NOT_MAPPED', productName, flavor })
   }
 
   try {
@@ -237,12 +224,7 @@ export async function GET(request: NextRequest) {
 
     const match = ranked[0]
     if (!match || match.score < 75 || !match.product.body_html) {
-      return NextResponse.json({
-        legalReady: false,
-        reason: 'OFFICIAL_VARIANT_NOT_FOUND',
-        productName,
-        flavor,
-      })
+      return NextResponse.json({ legalReady: false, reason: 'OFFICIAL_VARIANT_NOT_FOUND', productName, flavor })
     }
 
     const html = match.product.body_html
@@ -260,8 +242,8 @@ export async function GET(request: NextRequest) {
     const allergens = ingredientsSection ? extractAllergens(ingredientsSection.raw) : []
     const officialTitle = match.product.title || productName
     const supplement = SUPPLEMENT_HINTS.has(normalizedName) ||
-      (match.product.tags || []).some((tag) => normalize(tag).includes('suplementacion')) ||
-      normalize(descriptionSection?.text || '').includes('complemento')
+      normalize(descriptionSection?.text || '').includes('complemento alimenticio') ||
+      normalize(descriptionSection?.text || '').startsWith('complemento a base')
     const caffeine = CAFFEINE_PRODUCTS.has(normalizedName)
 
     const statutoryWarnings = supplement
@@ -272,23 +254,22 @@ export async function GET(request: NextRequest) {
         ]
       : []
 
-    if (caffeine) {
-      statutoryWarnings.push('Contiene cafeína. No recomendado para niños ni mujeres embarazadas.')
-    }
+    if (caffeine) statutoryWarnings.push('Contiene cafeína. No recomendado para niños ni mujeres embarazadas.')
 
     const caffeineRow = nutritionRows.find((row) => normalize(row.label).includes('cafeina'))
     const hasCoreComposition = nutritionRows.length > 0
     const hasIngredients = ingredients.length > 0
     const hasUsage = usage.length > 0
+    const hasCaffeineAmountWhenRequired = !caffeine || Boolean(caffeineRow?.value)
 
-    // Protective rule: if the manufacturer does not publish the ingredient list for the selected
-    // reference, GHC does not mark the product as ready for distance sale. This avoids relying on
-    // incomplete pre-contractual food information.
-    const legalReady = hasIngredients && hasCoreComposition && hasUsage
+    // Regla conservadora: si la fuente oficial no publica la información alimentaria esencial
+    // de la referencia seleccionada, GHC no la marca como apta para venta a distancia.
+    const legalReady = hasIngredients && hasCoreComposition && hasUsage && hasCaffeineAmountWhenRequired
     const missing: string[] = []
     if (!hasIngredients) missing.push('ingredientes')
     if (!hasCoreComposition) missing.push('composición/información nutricional')
     if (!hasUsage) missing.push('modo de empleo')
+    if (!hasCaffeineAmountWhenRequired) missing.push('cantidad de cafeína por porción recomendada')
 
     return NextResponse.json({
       legalReady,
@@ -296,6 +277,7 @@ export async function GET(request: NextRequest) {
       missing,
       productName,
       selectedFlavor: flavor,
+      legalDenomination: supplement ? 'Complemento alimenticio' : (descriptionSection?.text || officialTitle),
       officialTitle,
       officialUrl: match.product.handle ? `https://beverly.es/products/${match.product.handle}` : null,
       quantity: quantityFromTitle(officialTitle),
@@ -315,12 +297,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Product legal information resolution failed', error)
     return NextResponse.json(
-      {
-        legalReady: false,
-        reason: 'OFFICIAL_SOURCE_UNAVAILABLE',
-        productName,
-        flavor,
-      },
+      { legalReady: false, reason: 'OFFICIAL_SOURCE_UNAVAILABLE', productName, flavor },
       { status: 503 },
     )
   }
