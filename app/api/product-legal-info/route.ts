@@ -75,6 +75,11 @@ const SUPPLEMENT_HINTS = new Set([
   'carni xtreme 20 viales',
 ])
 
+const KNOWN_INVALID_VARIANTS = new Set([
+  'hydro protein 1kg::custard ice cream',
+  'women protein shake 1kg::chocolate',
+])
+
 type BeverlyProduct = {
   title?: string
   handle?: string
@@ -173,6 +178,25 @@ function meaningfulFlavor(flavor: string) {
   return normalized
 }
 
+function flavorAlias(value: string) {
+  return normalize(value)
+    .replace(/strawberry white chocolate/g, 'strawberry white choco')
+}
+
+function officialVariantMatches(productName: string, flavor: string, officialTitle: string) {
+  const productKey = normalize(productName)
+  const flavorKey = normalize(flavor)
+  if (KNOWN_INVALID_VARIANTS.has(`${productKey}::${flavorKey}`)) return false
+
+  const wanted = meaningfulFlavor(flavor)
+  if (!wanted) return true
+  if (productKey === 'pure whey 1kg' && wanted === 'unflavored') return true
+
+  const expected = flavorAlias(wanted)
+  const title = flavorAlias(officialTitle)
+  return title.includes(expected)
+}
+
 function scoreProduct(product: BeverlyProduct, family: string, flavor: string) {
   const title = normalize(`${product.title || ''} ${product.handle || ''}`)
   const normalizedFamily = normalize(family)
@@ -246,6 +270,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ legalReady: false, reason: 'OFFICIAL_VARIANT_NOT_FOUND', productName, flavor })
     }
 
+    const officialTitle = match.product.title || productName
+    if (!officialVariantMatches(productName, flavor, officialTitle)) {
+      return NextResponse.json({
+        legalReady: false,
+        reason: 'OFFICIAL_VARIANT_NOT_FOUND',
+        missing: ['variante oficial verificable'],
+        productName,
+        flavor,
+        officialTitle,
+      })
+    }
+
     const html = match.product.body_html
     const sections = splitSections(html)
     const ingredientsSection = findSection(sections, ['ingredientes'])
@@ -254,7 +290,6 @@ export async function GET(request: NextRequest) {
     const warningSection = findSection(sections, ['advertencias', 'precauciones'])
     const storageSection = findSection(sections, ['conservacion', 'conservar'])
     const descriptionSection = findSection(sections, ['descripcion del producto', 'descripcion'])
-    const officialTitle = match.product.title || productName
     const officialUrl = match.product.handle ? `https://beverly.es/products/${match.product.handle}` : null
     const fallback = ingredientFallback(normalizedName, flavor)
 
