@@ -1,13 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+
+const TERMS_VERSION = 'GHC_NUTRITION_ES_2026_08_22'
+const PRIVACY_VERSION = 'GHC_NUTRITION_PRIVACY_ES_2026_08_22'
+const RETURNS_VERSION = 'GHC_NUTRITION_RETURNS_ES_2026_08_22'
 
 export default function CheckoutLegalGuard() {
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState(false)
+  const acceptedRef = useRef(false)
 
   useEffect(() => {
     let currentForm: HTMLFormElement | null = null
@@ -17,6 +22,8 @@ export default function CheckoutLegalGuard() {
       if (!form) {
         currentForm = null
         setSlot(null)
+        acceptedRef.current = false
+        setAccepted(false)
         return
       }
 
@@ -56,9 +63,45 @@ export default function CheckoutLegalGuard() {
 
     document.addEventListener('submit', onSubmit, true)
 
+    const nativeFetch = window.fetch.bind(window)
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url
+
+      const isCheckout = url === '/api/checkout' || url.endsWith('/api/checkout')
+      if (!isCheckout || !init?.body || typeof init.body !== 'string') {
+        return nativeFetch(input, init)
+      }
+
+      let payload: Record<string, unknown>
+      try {
+        payload = JSON.parse(init.body) as Record<string, unknown>
+      } catch {
+        return nativeFetch(input, init)
+      }
+
+      payload.legal = {
+        termsAccepted: acceptedRef.current,
+        privacyAcknowledged: acceptedRef.current,
+        returnsAcknowledged: acceptedRef.current,
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
+        returnsVersion: RETURNS_VERSION,
+      }
+
+      return nativeFetch(input, {
+        ...init,
+        body: JSON.stringify(payload),
+      })
+    }
+
     return () => {
       observer.disconnect()
       document.removeEventListener('submit', onSubmit, true)
+      window.fetch = nativeFetch
     }
   }, [])
 
@@ -73,8 +116,10 @@ export default function CheckoutLegalGuard() {
           required
           checked={accepted}
           onChange={(event) => {
-            setAccepted(event.target.checked)
-            if (event.target.checked) setError(false)
+            const checked = event.target.checked
+            acceptedRef.current = checked
+            setAccepted(checked)
+            if (checked) setError(false)
           }}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#169646]"
         />
@@ -82,7 +127,9 @@ export default function CheckoutLegalGuard() {
           He leído y acepto las{' '}
           <Link href="/info/terminos" target="_blank" className="font-black underline underline-offset-2">Condiciones de contratación</Link>
           {' '}y confirmo haber leído la{' '}
-          <Link href="/info/privacidad" target="_blank" className="font-black underline underline-offset-2">Política de privacidad</Link>.
+          <Link href="/info/privacidad" target="_blank" className="font-black underline underline-offset-2">Política de privacidad</Link>
+          {' '}y la{' '}
+          <Link href="/info/devoluciones" target="_blank" className="font-black underline underline-offset-2">Política de devoluciones</Link>.
         </span>
       </label>
       <p className="mt-3 text-[10px] leading-4 text-black/42">
