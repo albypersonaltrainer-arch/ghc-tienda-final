@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-const CHECKOUT_ID = '5b88e3aa-6826-452e-b960-e3836f91e141'
+const CHECKOUT_ID = 'fa98f071-560a-49de-a0c1-3d51e3871770'
 
 export async function GET() {
   const apiKey = process.env.SUMUP_API_KEY
@@ -25,6 +25,7 @@ export async function GET() {
           result: tx.result ?? null,
           failure_reason: tx.failure_reason ?? null,
           decline_reason: tx.decline_reason ?? null,
+          keys: Object.keys(tx).sort(),
         }
       })
     : []
