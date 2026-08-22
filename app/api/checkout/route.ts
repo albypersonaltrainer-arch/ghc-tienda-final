@@ -89,6 +89,44 @@ function buildOrderDescription(
     .slice(0, 255)
 }
 
+async function verifyFoodInformation(
+  request: NextRequest,
+  items: Array<{ name: string; flavor: string }>,
+) {
+  const unique = [...new Map(items.map((item) => [`${item.name}::${item.flavor}`, item])).values()]
+
+  const checks = await Promise.all(
+    unique.map(async (item) => {
+      try {
+        const url = new URL('/api/product-legal-info', request.nextUrl.origin)
+        url.searchParams.set('name', item.name)
+        url.searchParams.set('flavor', item.flavor)
+        const response = await fetch(url, { cache: 'no-store' })
+        const payload = await response.json().catch(() => ({})) as {
+          legalReady?: boolean
+          missing?: string[]
+          reason?: string
+        }
+        return {
+          ...item,
+          legalReady: response.ok && payload.legalReady === true,
+          missing: payload.missing || [],
+          reason: payload.reason || null,
+        }
+      } catch {
+        return {
+          ...item,
+          legalReady: false,
+          missing: [],
+          reason: 'OFFICIAL_SOURCE_UNAVAILABLE',
+        }
+      }
+    }),
+  )
+
+  return checks.filter((item) => !item.legalReady)
+}
+
 export async function POST(request: NextRequest) {
   let body: {
     items?: CheckoutItem[]
@@ -121,29 +159,6 @@ export async function POST(request: NextRequest) {
         code: 'LEGAL_ACCEPTANCE_REQUIRED',
       },
       { status: 400 },
-    )
-  }
-
-  const apiKey = process.env.SUMUP_API_KEY
-  const merchantCode = process.env.SUMUP_MERCHANT_CODE
-
-  if (!apiKey || !merchantCode) {
-    return NextResponse.json(
-      {
-        error: 'La integración de SumUp todavía no está configurada.',
-        code: 'SUMUP_NOT_CONFIGURED',
-      },
-      { status: 503 },
-    )
-  }
-
-  if (!isCommerceDatabaseConfigured()) {
-    return NextResponse.json(
-      {
-        error: 'La base de datos de pedidos todavía no está conectada.',
-        code: 'SUPABASE_NOT_CONFIGURED',
-      },
-      { status: 503 },
     )
   }
 
@@ -186,6 +201,46 @@ export async function POST(request: NextRequest) {
       unitPrice: product.price,
       pvpPrice: product.regularPrice ?? product.price,
     })
+  }
+
+  const blockedFoodItems = await verifyFoodInformation(request, normalizedItems)
+  if (blockedFoodItems.length) {
+    return NextResponse.json(
+      {
+        error: 'Una o más referencias no disponen todavía de toda la información alimentaria precontractual verificada. Se ha bloqueado el pago para proteger al comprador y a GHC Nutrition.',
+        code: 'FOOD_INFO_NOT_VERIFIED',
+        products: blockedFoodItems.map((item) => ({
+          name: item.name,
+          flavor: item.flavor,
+          missing: item.missing,
+          reason: item.reason,
+        })),
+      },
+      { status: 409 },
+    )
+  }
+
+  const apiKey = process.env.SUMUP_API_KEY
+  const merchantCode = process.env.SUMUP_MERCHANT_CODE
+
+  if (!apiKey || !merchantCode) {
+    return NextResponse.json(
+      {
+        error: 'La integración de SumUp todavía no está configurada.',
+        code: 'SUMUP_NOT_CONFIGURED',
+      },
+      { status: 503 },
+    )
+  }
+
+  if (!isCommerceDatabaseConfigured()) {
+    return NextResponse.json(
+      {
+        error: 'La base de datos de pedidos todavía no está conectada.',
+        code: 'SUPABASE_NOT_CONFIGURED',
+      },
+      { status: 503 },
+    )
   }
 
   const customer = body.customer || {}
