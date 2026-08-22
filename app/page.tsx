@@ -1,343 +1,859 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import Image from 'next/image'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Minus,
+  Plus,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { collagenPromo, formatPrice, products, type Product } from '@/lib/catalog'
 
-const products = [
-  { 
-    id: 1, 
-    name: "Whey Pro Concentrate 2kg", 
-    price: 72.90, 
-    sumupLink: "https://pay.sumup.com/b2c/QMMQRGOQ",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Proteinas%20concentrada%20choco%20cookies-GhBTztcpWoxgoDWvXKyJQeKJJzZVNQ.webp", 
-    flavors: ["Choco Cookies", "Belgian Choco", "Vainilla", "Strawberry"], 
-    description: "Proteina de suero concentrada" 
-  },
-  { 
-    id: 2, 
-    name: "Micellar Caseina 1kg", 
-    price: 32.50, 
-    sumupLink: "https://pay.sumup.com/b2c/Q9Y55JKC",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Caseinato%201%20kg-pN6sFcRtHZk3eYSxhYQlGIGoNXrCfL.webp", 
-    flavors: ["Chocolate", "Strawberry", "Vainilla"], 
-    description: "Liberacion lenta 8 horas" 
-  },
-  { 
-    id: 3, 
-    name: "Vegan Protein 900g", 
-    price: 27.90, 
-    sumupLink: "https://pay.sumup.com/b2c/Q6XSWWTQ",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Proteina%20vegana%20cookies-lil6MyacDTD1FnALpmXagZmkEShL61.webp", 
-    flavors: ["Choco Cookies", "Strawberry White Choco"], 
-    description: "Proteina vegetal de guisante y arroz" 
-  },
-  { 
-   {
-  id: 4,
-  name: "Creatina 500g",
-  price: 39.90,
-  sumupLink: "https://pay.sumup.com/b2c/QEYKCSD6",
-  image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/creatina%20500g-nt8PxaZscVo3qP4d4o80owqOaQ6ihY.webp",
-  flavors: ["Sin Sabor"],
-  description: "100% Monohidrato - Máxima pureza",
-  tech: {
-    ingredients: "Creatina Monohidrato (100% Ultra-pure).",
-    nutrition: [
-      "Creatina Monohidrato: 3000 mg",
-      "Servicios por envase: 166",
-      "Sin azúcares ni grasas"
-    ],
-    aminogram: "Pureza garantizada 100% Monohidrato."
-  }
-},
-  { 
-    id: 5, 
-    name: "BCAA 8:1:1 300g", 
-    price: 26.90, 
-    sumupLink: "https://pay.sumup.com/b2c/QP3A1QLX",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/BCAA%208-1-1%20lollipop-T7kmttiXKgxlUMs3vWmQBxelE566CI.webp", 
-    flavors: ["Blue Lollipop", "Watermelon"], 
-    description: "Con L-Glutamina Kyowa" 
-  },
-  { 
-    id: 6, 
-    name: "M.A.P. 300g", 
-    price: 36.50, 
-    sumupLink: "https://pay.sumup.com/b2c/Q8HESM99",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/MAP%20300%20blue%20lollipop-fBOTN6amSVgMUkF8ijSzUxaRZoAOew.webp", 
-    flavors: ["Blue Lollipop", "Watermelon"], 
-    description: "Aminoacidos esenciales" 
-  },
-  { 
-    id: 7, 
-    name: "Dynamite Pre-Workout", 
-    price: 32.90, 
-    sumupLink: "https://pay.sumup.com/b2c/QNRD1XYD",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Pre-entreno%20fruit%20punch-jQDr8jqS1HvR35ROiC3Bkk8cPynNEV.webp", 
-    flavors: ["Fruit Punch", "Blue Lollipop"], 
-    description: "El pre-entreno definitivo" 
-  },
-  { 
-    id: 8, 
-    name: "Energy Pro 90 caps", 
-    price: 19.90, 
-    sumupLink: "https://pay.sumup.com/b2c/QT076WNE",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/energy%20pro%2090-0g8rFct95mlzm12kBYHJ6gbv7QhSne.webp", 
-    flavors: ["Capsulas"], 
-    description: "Energia y concentracion" 
-  },
-  { 
-    id: 9, 
-    name: "Vitamin Complex 90 tabs", 
-    price: 14.90, 
-    sumupLink: "https://pay.sumup.com/b2c/Q6KCXQJS",
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Vitamina%20Complex-aSmopLYLbOJhmDr7tdBUrpTf2sXpyW.webp", 
-    flavors: ["Tabletas"], 
-    description: "Vitaminas y minerales esenciales" 
-  },
-]
-
-// Promo Colageno link
-const PROMO_COLAGENO_LINK = "https://pay.sumup.com/b2c/QIVU97RR"
-
-// Hook para capturar y gestionar el parametro ref de referidos
-function useReferralCode() {
-  const [refCode, setRefCode] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const ref = urlParams.get('ref')
-      if (ref) {
-        setRefCode(ref)
-        // Guardar en sessionStorage para persistir durante la sesion
-        sessionStorage.setItem('ghc_ref', ref)
-      } else {
-        // Recuperar de sessionStorage si existe
-        const storedRef = sessionStorage.getItem('ghc_ref')
-        if (storedRef) {
-          setRefCode(storedRef)
-        }
-      }
-    }
-  }, [])
-
-  // Funcion para añadir el ref al enlace de SumUp
-  const addRefToLink = (baseLink: string): string => {
-    if (!refCode) return baseLink
-    const separator = baseLink.includes('?') ? '&' : '?'
-    return `${baseLink}${separator}ref=${encodeURIComponent(refCode)}`
-  }
-
-  return { refCode, addRefToLink }
+type CartItem = {
+  productId: string
+  flavor: string
+  quantity: number
 }
 
-function FlavorSelector({ 
-  flavors, 
-  selectedFlavor, 
-  onChange 
-}: { 
-  flavors: string[]
-  selectedFlavor: string
-  onChange: (flavor: string) => void 
-}) {
-  return (
-    <div className="relative">
-      <select 
-        value={selectedFlavor}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 bg-gradient-to-b from-gray-100 to-gray-200 border border-gray-300 rounded-lg pl-4 pr-10 text-sm font-medium text-gray-800 appearance-none cursor-pointer hover:border-orange-500/50 focus:border-orange-500 focus:outline-none transition-colors shadow-inner"
-      >
-        {flavors.map(flavor => (
-          <option key={flavor} value={flavor} className="bg-white text-gray-800">
-            {flavor}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
-    </div>
-  )
+type CustomerForm = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  addressLine: string
+  city: string
+  postalCode: string
+  state: string
+  country: string
 }
 
-function ProductCard({ 
-  product, 
-  selectedFlavor, 
-  onFlavorChange,
-  addRefToLink
-}: { 
-  product: typeof products[0]
-  selectedFlavor: string
-  onFlavorChange: (flavor: string) => void
-  addRefToLink: (link: string) => string
+const EMPTY_CUSTOMER: CustomerForm = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  addressLine: '',
+  city: '',
+  postalCode: '',
+  state: '',
+  country: 'ES',
+}
+
+const categoryCopy = {
+  Todos: 'Todo el catálogo',
+  Proteína: 'Proteína y recuperación',
+  Rendimiento: 'Rendimiento',
+  Salud: 'Salud activa',
+} as const
+
+type Category = keyof typeof categoryCopy
+
+function cartKey(item: Pick<CartItem, 'productId' | 'flavor'>) {
+  return `${item.productId}::${item.flavor}`
+}
+
+function ProductCard({
+  product,
+  onAdd,
+}: {
+  product: Product
+  onAdd: (product: Product, flavor: string) => void
 }) {
+  const [flavor, setFlavor] = useState(product.flavors[0])
+
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col h-full transition-all hover:border-orange-500/60 hover:shadow-xl group relative overflow-hidden">
-      {/* Metallic shine effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      
-      {/* Imagen - altura fija */}
-      <div className="relative h-52 w-full mb-5 flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl overflow-hidden">
-        <img 
-          src={product.image} 
+    <article className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.05)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(0,0,0,0.10)]">
+      <div className="relative flex h-64 items-center justify-center overflow-hidden bg-gradient-to-b from-zinc-50 to-zinc-100 p-6">
+        {product.badge && (
+          <span className="absolute left-5 top-5 z-10 rounded-full bg-zinc-950 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
+            {product.badge}
+          </span>
+        )}
+        <Image
+          src={product.image}
           alt={product.name}
-          className="h-44 object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-md" 
+          width={420}
+          height={420}
+          sizes="(max-width: 768px) 80vw, (max-width: 1200px) 40vw, 25vw"
+          className="h-52 w-auto object-contain drop-shadow-xl transition duration-500 group-hover:scale-[1.05]"
         />
       </div>
 
-      {/* Contenido - flex-1 para ocupar espacio disponible */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Nombre y descripcion - altura minima fija */}
-        <div className="min-h-[60px] mb-4">
-          <h3 className="text-lg font-bold leading-tight uppercase text-gray-900">{product.name}</h3>
-          <p className="text-xs text-gray-500 mt-1">{product.description}</p>
-        </div>
-        
-        {/* Selector de sabor - identico para todos */}
+      <div className="flex flex-1 flex-col p-6">
         <div className="mb-5">
-          <FlavorSelector 
-            flavors={product.flavors}
-            selectedFlavor={selectedFlavor}
-            onChange={onFlavorChange}
-          />
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-orange-600">
+            {product.category}
+          </p>
+          <h3 className="text-xl font-black leading-tight text-zinc-950">{product.name}</h3>
+          <p className="mt-2 min-h-10 text-sm leading-5 text-zinc-500">{product.description}</p>
+        </div>
+
+        <label className="mb-5 block">
+          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
+            Formato / sabor
+          </span>
+          <div className="relative">
+            <select
+              value={flavor}
+              onChange={(event) => setFlavor(event.target.value)}
+              className="h-12 w-full appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 pr-10 text-sm font-semibold text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10"
+            >
+              {product.flavors.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          </div>
+        </label>
+
+        <div className="mt-auto flex items-center justify-between gap-4 border-t border-zinc-100 pt-5">
+          <span className="text-2xl font-black tracking-tight text-zinc-950">
+            {formatPrice(product.price)}
+          </span>
+          <button
+            type="button"
+            onClick={() => onAdd(product, flavor)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-black text-white transition hover:bg-orange-600 active:scale-[0.98]"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Añadir
+          </button>
         </div>
       </div>
-
-      {/* Precio y boton - siempre al fondo, mt-auto empuja hacia abajo */}
-      <div className="border-t border-gray-200 pt-5 flex items-center justify-between gap-4 mt-auto relative">
-        <span className="text-2xl font-black text-gray-900">{product.price.toFixed(2)}€</span>
-        <Button 
-          asChild
-          className="bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-xs px-5 h-10 transition-all rounded-lg flex-1 shadow-md hover:shadow-lg border border-orange-400/50"
-        >
-          <a href={addRefToLink(product.sumupLink)} target="_blank" rel="noopener noreferrer">
-            COMPRAR
-          </a>
-        </Button>
-      </div>
-    </div>
+    </article>
   )
 }
 
 export default function LandingPage() {
-  const [selectedFlavors, setSelectedFlavors] = useState<Record<number, string>>(
-    Object.fromEntries(products.map(p => [p.id, p.flavors[0]]))
-  )
-  const { refCode, addRefToLink } = useReferralCode()
+  const [activeCategory, setActiveCategory] = useState<Category>('Todos')
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [cartOpen, setCartOpen] = useState(false)
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details'>('cart')
+  const [customer, setCustomer] = useState<CustomerForm>(EMPTY_CUSTOMER)
+  const [referral, setReferral] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState('')
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
 
-  const handleFlavorChange = (productId: number, flavor: string) => {
-    setSelectedFlavors(prev => ({ ...prev, [productId]: flavor }))
+  useEffect(() => {
+    const saved = window.localStorage.getItem('ghc_cart')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as CartItem[]
+        if (Array.isArray(parsed)) setCart(parsed)
+      } catch {
+        window.localStorage.removeItem('ghc_cart')
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    const refFromUrl = params.get('ref')
+    const savedRef = window.sessionStorage.getItem('ghc_ref')
+    const activeRef = refFromUrl || savedRef
+
+    if (activeRef) {
+      setReferral(activeRef)
+      window.sessionStorage.setItem('ghc_ref', activeRef)
+    }
+
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    window.localStorage.setItem('ghc_cart', JSON.stringify(cart))
+  }, [cart, hydrated])
+
+  useEffect(() => {
+    document.body.style.overflow = cartOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [cartOpen])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCartOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'Todos') return products
+    return products.filter((product) => product.category === activeCategory)
+  }, [activeCategory])
+
+  const detailedCart = useMemo(() => {
+    return cart
+      .map((item) => {
+        const product =
+          item.productId === collagenPromo.id
+            ? collagenPromo
+            : products.find((candidate) => candidate.id === item.productId)
+        return product ? { ...item, product } : null
+      })
+      .filter(Boolean) as Array<CartItem & { product: Product }>
+  }, [cart])
+
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const total = detailedCart.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  )
+
+  const addToCart = (product: Product, flavor: string) => {
+    setCart((current) => {
+      const key = cartKey({ productId: product.id, flavor })
+      const existing = current.find((item) => cartKey(item) === key)
+
+      if (existing) {
+        return current.map((item) =>
+          cartKey(item) === key
+            ? { ...item, quantity: Math.min(item.quantity + 1, 10) }
+            : item,
+        )
+      }
+
+      return [...current, { productId: product.id, flavor, quantity: 1 }]
+    })
+    setCheckoutStep('cart')
+    setCartOpen(true)
+  }
+
+  const changeQuantity = (item: CartItem, delta: number) => {
+    const key = cartKey(item)
+    setCart((current) =>
+      current
+        .map((candidate) =>
+          cartKey(candidate) === key
+            ? { ...candidate, quantity: Math.max(0, Math.min(10, candidate.quantity + delta)) }
+            : candidate,
+        )
+        .filter((candidate) => candidate.quantity > 0),
+    )
+  }
+
+  const removeItem = (item: CartItem) => {
+    const key = cartKey(item)
+    setCart((current) => current.filter((candidate) => cartKey(candidate) !== key))
+  }
+
+  const startCheckout = () => {
+    setCheckoutError('')
+    setCheckoutStep('details')
+  }
+
+  const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCheckoutError('')
+    setCheckingOut(true)
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cart,
+          customer,
+          referral,
+        }),
+      })
+
+      const data = (await response.json()) as {
+        checkoutUrl?: string
+        error?: string
+        code?: string
+      }
+
+      if (!response.ok || !data.checkoutUrl) {
+        if (data.code === 'SUMUP_NOT_CONFIGURED') {
+          throw new Error(
+            'El carrito ya está listo, pero falta conectar la clave API y el código de comercio de SumUp.',
+          )
+        }
+        throw new Error(data.error || 'No se pudo iniciar el pago.')
+      }
+
+      window.location.assign(data.checkoutUrl)
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'No se pudo iniciar el pago.')
+    } finally {
+      setCheckingOut(false)
+    }
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 text-gray-900 font-sans selection:bg-orange-500/30">
-      {/* Brushed Metal Background Pattern */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-40"
-        style={{
-          backgroundImage: `repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 1px,
-            rgba(180,180,180,0.2) 1px,
-            rgba(180,180,180,0.2) 2px
-          )`,
-          backgroundSize: '3px 100%'
-        }}
-      />
+    <main className="min-h-screen bg-[#f4f3f0] text-zinc-950">
+      <div className="bg-zinc-950 px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-200">
+        Distribuidor oficial Beverly Nutrition · Pago seguro con SumUp
+      </div>
 
-      {/* Header con Logo Centrado */}
-      <header className="relative py-8 flex flex-col items-center border-b border-gray-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 shadow-sm">
-       <div className="relative h-48 w-48 overflow-hidden md:h-56 md:w-56">
-         <img 
-            src="/logo-limpio.png" 
-            alt="GHC Nutrition Logo" 
-            className="h-full w-full object-contain drop-shadow-lg"/>
+      <header className="sticky top-0 z-40 border-b border-black/5 bg-[#f4f3f0]/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <a href="#" className="flex items-center gap-3" aria-label="GHC Nutrition, inicio">
+            <Image
+              src="/logo-limpio.png"
+              alt="GHC Nutrition"
+              width={90}
+              height={90}
+              priority
+              className="h-14 w-14 object-contain"
+            />
+            <div className="hidden sm:block">
+              <p className="text-sm font-black uppercase tracking-[0.12em]">GHC Nutrition</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                Health Through Strength
+              </p>
+            </div>
+          </a>
+
+          <nav className="hidden items-center gap-8 text-sm font-bold text-zinc-700 md:flex">
+            <a href="#catalogo" className="transition hover:text-orange-600">
+              Productos
+            </a>
+            <a href="#criterio" className="transition hover:text-orange-600">
+              Nuestro criterio
+            </a>
+            <a href="#oferta" className="transition hover:text-orange-600">
+              Oferta
+            </a>
+          </nav>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCheckoutStep('cart')
+              setCartOpen(true)
+            }}
+            className="relative inline-flex h-11 items-center gap-2 rounded-full bg-zinc-950 px-4 text-sm font-black text-white transition hover:bg-orange-500"
+            aria-label={`Abrir carrito, ${itemCount} productos`}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span className="hidden sm:inline">Carrito</span>
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[11px] text-white">
+              {itemCount}
+            </span>
+          </button>
         </div>
-        <p className="mt-3 text-orange-600 uppercase tracking-[0.25em] text-xs font-bold">
-          Distribuidor Oficial Beverly Nutrition
-        </p>
-        {refCode && (
-          <span className="mt-2 text-[10px] text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">
-            Referido: {refCode}
-          </span>
-        )}
       </header>
 
-      {/* Banner Oferta del Dia - Colageno */}
-      <section className="relative container mx-auto px-4 py-12">
-        <div className="bg-gradient-to-br from-white via-white to-gray-50 border border-gray-200 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-8 shadow-xl relative overflow-hidden">
-          {/* Metallic accent */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-400" />
-          
-          <div className="relative">
-            <img 
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/colageno-rQhEmCHoRZ4qFSOEisJ4NnnMLfiqdG.webp" 
-              alt="Colageno Beverly"
-             className="w-80 h-80 object-contain drop-shadow-xl md:w-96 md:h-96" 
-            />
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <span className="bg-gradient-to-r from-orange-500 to-orange-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase mb-4 inline-block shadow-md">
-              Oferta Especial
-            </span>
-            <h2 className="text-3xl md:text-4xl font-black mb-2 tracking-tight text-balance text-gray-900">
-              PROMO COLAGENO: 2 CAJAS
-            </h2>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto md:mx-0">
-              Pack exclusivo de salud articular y belleza. 40 viales con Colageno Peptan, Vitamina C y Acido Hialuronico.
-            </p>
-            <div className="flex items-center justify-center md:justify-start gap-4 mb-8">
-              <span className="text-5xl font-black text-orange-500">65€</span>
-              <span className="text-xl line-through text-gray-400">73.80€</span>
-              <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">-12%</span>
+      <section className="relative overflow-hidden bg-zinc-950 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(249,115,22,0.24),transparent_34%),radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.08),transparent_32%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-zinc-200">
+              <Sparkles className="h-4 w-4 text-orange-400" />
+              Suplementación con criterio
             </div>
-            <Button 
-              asChild
-              className="bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold h-14 px-10 rounded-xl transition-all hover:scale-105 shadow-lg border border-orange-400/50"
-            >
-              <a href={addRefToLink(PROMO_COLAGENO_LINK)} target="_blank" rel="noopener noreferrer">
-                COMPRAR PACK AHORA
+            <h1 className="max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+              No vendemos botes.
+              <span className="block text-orange-500">Recomendamos herramientas.</span>
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-300">
+              Una selección directa para rendimiento, recuperación y salud activa. Sin catálogo
+              infinito, sin ruido y con una compra mucho más sencilla.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <a
+                href="#catalogo"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-orange-500 px-6 text-sm font-black text-white transition hover:bg-orange-600"
+              >
+                Ver productos
+                <ArrowRight className="h-4 w-4" />
               </a>
-            </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckoutStep('cart')
+                  setCartOpen(true)
+                }}
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 text-sm font-black text-white transition hover:bg-white/10"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Mi carrito
+              </button>
+            </div>
+          </div>
+
+          <div id="criterio" className="grid content-center gap-3">
+            {[
+              ['01', 'Rendimiento', 'Productos seleccionados para apoyar entrenamientos exigentes.'],
+              ['02', 'Recuperación', 'Proteína y aminoácidos sin hacerte perderte entre cien opciones.'],
+              ['03', 'Salud activa', 'Complementos para una estrategia diaria simple y coherente.'],
+            ].map(([number, title, text]) => (
+              <div
+                key={number}
+                className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur"
+              >
+                <div className="flex gap-4">
+                  <span className="text-sm font-black text-orange-400">{number}</span>
+                  <div>
+                    <h2 className="font-black">{title}</h2>
+                    <p className="mt-1 text-sm leading-6 text-zinc-400">{text}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Titulo Catalogo */}
-      <section className="relative container mx-auto px-4 pb-4">
-        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight text-center md:text-left">
-          Catalogo de Productos
-        </h2>
-        <div className="w-20 h-1 bg-gradient-to-r from-orange-500 to-orange-400 mt-2 mx-auto md:mx-0 rounded-full" />
+      <section id="oferta" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-[34px] bg-orange-500 text-white shadow-[0_30px_90px_rgba(249,115,22,0.24)]">
+          <div className="grid items-center gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="flex min-h-[380px] items-center justify-center bg-white/95 p-8">
+              <Image
+                src={collagenPromo.image}
+                alt={collagenPromo.name}
+                width={560}
+                height={560}
+                sizes="(max-width: 1024px) 90vw, 40vw"
+                className="h-[320px] w-auto object-contain drop-shadow-2xl"
+              />
+            </div>
+            <div className="p-8 sm:p-10 lg:p-12">
+              <span className="inline-flex rounded-full bg-zinc-950 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white">
+                Oferta especial
+              </span>
+              <h2 className="mt-5 text-4xl font-black tracking-[-0.035em] sm:text-5xl">
+                2 cajas de colágeno
+              </h2>
+              <p className="mt-4 max-w-xl text-base leading-7 text-orange-50">
+                40 viales con Colágeno Peptan, vitamina C y ácido hialurónico.
+              </p>
+              <div className="mt-7 flex items-end gap-4">
+                <span className="text-5xl font-black">{formatPrice(collagenPromo.price)}</span>
+                <span className="pb-1 text-xl font-bold text-orange-100 line-through">
+                  {formatPrice(collagenPromo.regularPrice || collagenPromo.price)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => addToCart(collagenPromo, collagenPromo.flavors[0])}
+                className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-zinc-950 px-6 text-sm font-black text-white transition hover:bg-zinc-800"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                Añadir pack al carrito
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Catalogo de Productos - Grid 3x3 */}
-      <section className="relative container mx-auto px-4 pb-24">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              selectedFlavor={selectedFlavors[product.id]}
-              onFlavorChange={(flavor) => handleFlavorChange(product.id, flavor)}
-              addRefToLink={addRefToLink}
-            />
+      <section id="catalogo" className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="mb-9 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">Catálogo</p>
+            <h2 className="mt-2 text-4xl font-black tracking-[-0.035em] sm:text-5xl">
+              Compra por objetivo
+            </h2>
+            <p className="mt-3 max-w-2xl text-zinc-600">
+              Elige el producto, el sabor y añádelo al carrito. Puedes combinar varios productos y
+              hacer un único pago.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(categoryCopy) as Category[]).map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setActiveCategory(category)}
+                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                  activeCategory === category
+                    ? 'bg-zinc-950 text-white'
+                    : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} onAdd={addToCart} />
           ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative bg-gradient-to-b from-white to-gray-50 border-t border-gray-200 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-500 text-sm">
-            GHC Nutrition - Distribuidor Oficial Beverly Nutrition
-          </p>
-          <p className="text-gray-400 text-xs mt-2">
-            Suplementos deportivos de maxima calidad
+      <section className="border-y border-zinc-200 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
+          {[
+            [ShieldCheck, 'Pago protegido', 'El pago final se procesa en el entorno seguro de SumUp.'],
+            [ShoppingBag, 'Un solo carrito', 'Combina productos, sabores y cantidades antes de pagar.'],
+            [Check, 'Selección directa', 'Un catálogo corto y fácil de entender, sin ruido innecesario.'],
+          ].map(([Icon, title, text]) => {
+            const ItemIcon = Icon as typeof ShieldCheck
+            return (
+              <div key={String(title)} className="flex gap-4 rounded-2xl bg-zinc-50 p-5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                  <ItemIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-black">{String(title)}</h3>
+                  <p className="mt-1 text-sm leading-6 text-zinc-500">{String(text)}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <footer className="bg-zinc-950 text-zinc-300">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo-limpio.png"
+              alt="GHC Nutrition"
+              width={72}
+              height={72}
+              className="h-12 w-12 object-contain"
+            />
+            <div>
+              <p className="font-black text-white">GHC Nutrition</p>
+              <p className="text-xs text-zinc-500">Distribuidor oficial Beverly Nutrition</p>
+            </div>
+          </div>
+          <p className="max-w-lg text-sm leading-6 text-zinc-500 md:text-right">
+            Suplementación deportiva seleccionada con un enfoque simple: producto, objetivo y
+            criterio.
           </p>
         </div>
       </footer>
+
+      {cartOpen && (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Cerrar carrito"
+            onClick={() => setCartOpen(false)}
+            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+          />
+
+          <aside
+            className="absolute right-0 top-0 flex h-full w-full max-w-xl flex-col bg-white shadow-2xl"
+            aria-label="Carrito de compra"
+          >
+            <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 sm:px-6">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
+                  {checkoutStep === 'cart' ? 'Tu selección' : 'Datos de entrega'}
+                </p>
+                <h2 className="text-2xl font-black">
+                  {checkoutStep === 'cart' ? 'Carrito' : 'Finalizar compra'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 transition hover:bg-zinc-200"
+                aria-label="Cerrar carrito"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {checkoutStep === 'cart' ? (
+              <>
+                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+                  {detailedCart.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                        <ShoppingBag className="h-7 w-7" />
+                      </div>
+                      <h3 className="mt-5 text-xl font-black">Tu carrito está vacío</h3>
+                      <p className="mt-2 max-w-xs text-sm leading-6 text-zinc-500">
+                        Añade los productos que quieras y los pagarás todos juntos.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCartOpen(false)}
+                        className="mt-6 rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-black text-white"
+                      >
+                        Seguir comprando
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {detailedCart.map((item) => (
+                        <div
+                          key={cartKey(item)}
+                          className="grid grid-cols-[82px_1fr] gap-4 rounded-2xl border border-zinc-200 p-3"
+                        >
+                          <div className="flex h-20 items-center justify-center rounded-xl bg-zinc-50 p-2">
+                            <Image
+                              src={item.product.image}
+                              alt={item.product.name}
+                              width={100}
+                              height={100}
+                              className="h-16 w-16 object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex justify-between gap-3">
+                              <div>
+                                <h3 className="text-sm font-black leading-5">{item.product.name}</h3>
+                                <p className="mt-1 text-xs text-zinc-500">{item.flavor}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item)}
+                                className="h-8 w-8 shrink-0 rounded-full text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-900"
+                                aria-label={`Eliminar ${item.product.name}`}
+                              >
+                                <Trash2 className="mx-auto h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between">
+                              <div className="inline-flex items-center rounded-full border border-zinc-200">
+                                <button
+                                  type="button"
+                                  onClick={() => changeQuantity(item, -1)}
+                                  className="flex h-8 w-8 items-center justify-center"
+                                  aria-label="Restar una unidad"
+                                >
+                                  <Minus className="h-3.5 w-3.5" />
+                                </button>
+                                <span className="min-w-8 text-center text-sm font-black">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => changeQuantity(item, 1)}
+                                  className="flex h-8 w-8 items-center justify-center"
+                                  aria-label="Añadir una unidad"
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              <span className="font-black">
+                                {formatPrice(item.product.price * item.quantity)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {detailedCart.length > 0 && (
+                  <div className="border-t border-zinc-200 bg-zinc-50 px-5 py-5 sm:px-6">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-sm font-bold text-zinc-500">Total productos</span>
+                      <span className="text-3xl font-black tracking-tight">{formatPrice(total)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={startCheckout}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white transition hover:bg-orange-600"
+                    >
+                      Continuar al pago
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
+                      El importe final se vuelve a calcular en el servidor para evitar manipulaciones.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <form onSubmit={submitCheckout} className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutStep('cart')}
+                    className="mb-5 text-sm font-black text-zinc-500 transition hover:text-zinc-950"
+                  >
+                    ← Volver al carrito
+                  </button>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Nombre
+                      </span>
+                      <input
+                        required
+                        value={customer.firstName}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, firstName: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="given-name"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Apellidos
+                      </span>
+                      <input
+                        required
+                        value={customer.lastName}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, lastName: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="family-name"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Email
+                      </span>
+                      <input
+                        required
+                        type="email"
+                        value={customer.email}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, email: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="email"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Teléfono
+                      </span>
+                      <input
+                        required
+                        value={customer.phone}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, phone: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="tel"
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Dirección
+                      </span>
+                      <input
+                        required
+                        value={customer.addressLine}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, addressLine: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="street-address"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Ciudad
+                      </span>
+                      <input
+                        required
+                        value={customer.city}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, city: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="address-level2"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Código postal
+                      </span>
+                      <input
+                        required
+                        value={customer.postalCode}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, postalCode: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="postal-code"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        Provincia / región
+                      </span>
+                      <input
+                        required
+                        value={customer.state}
+                        onChange={(event) =>
+                          setCustomer((current) => ({ ...current, state: event.target.value }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:border-orange-500"
+                        autoComplete="address-level1"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.1em] text-zinc-500">
+                        País
+                      </span>
+                      <input
+                        required
+                        maxLength={2}
+                        value={customer.country}
+                        onChange={(event) =>
+                          setCustomer((current) => ({
+                            ...current,
+                            country: event.target.value.toUpperCase(),
+                          }))
+                        }
+                        className="h-11 w-full rounded-xl border border-zinc-200 px-3 text-sm uppercase outline-none focus:border-orange-500"
+                        autoComplete="country"
+                        aria-describedby="country-help"
+                      />
+                      <span id="country-help" className="mt-1 block text-[11px] text-zinc-400">
+                        Código de 2 letras, por ejemplo ES.
+                      </span>
+                    </label>
+                  </div>
+
+                  {referral && (
+                    <div className="mt-5 rounded-xl bg-zinc-100 px-4 py-3 text-xs text-zinc-600">
+                      Referencia asociada: <strong>{referral}</strong>
+                    </div>
+                  )}
+
+                  {checkoutError && (
+                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                      {checkoutError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-zinc-200 bg-zinc-50 px-5 py-5 sm:px-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-sm font-bold text-zinc-500">Total</span>
+                    <span className="text-3xl font-black">{formatPrice(total)}</span>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={checkingOut}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {checkingOut ? 'Preparando pago…' : 'Pagar todo con SumUp'}
+                    {!checkingOut && <ShieldCheck className="h-4 w-4" />}
+                  </button>
+                  <p className="mt-3 text-center text-[11px] leading-5 text-zinc-500">
+                    Tus datos de tarjeta no pasan por GHC Nutrition. El pago se completa en SumUp.
+                  </p>
+                </div>
+              </form>
+            )}
+          </aside>
+        </div>
+      )}
     </main>
   )
 }
