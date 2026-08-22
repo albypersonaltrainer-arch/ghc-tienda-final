@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import HeroCarouselV4 from '@/app/components/HeroCarouselV4'
 import './globals.css'
 
 const geist = Geist({
@@ -38,6 +39,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${geist.variable} font-sans antialiased`}>
         {children}
+        <HeroCarouselV4 />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
