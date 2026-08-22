@@ -10,6 +10,7 @@ import { getProduct } from '@/lib/catalog'
 import {
   createPendingOrder,
   getActiveCoupon,
+  getActiveTrainerPartner,
   reserveCoupon,
   settleOrder,
   updateOrder,
@@ -45,12 +46,18 @@ function buildOrderDescription(
   items: Array<{ name: string; flavor: string; quantity: number }>,
   referral: string,
   couponCode: string,
+  trainerCode: string,
 ) {
   const products = items
     .map((item) => `${item.quantity}x ${item.name} (${item.flavor})`)
     .join('; ')
 
-  return [products, referral ? `Ref: ${referral}` : '', couponCode ? `Cupón: ${couponCode}` : '']
+  return [
+    products,
+    referral ? `Ref: ${referral}` : '',
+    trainerCode ? `Coach: ${trainerCode}` : '',
+    couponCode ? `Cupón: ${couponCode}` : '',
+  ]
     .filter(Boolean)
     .join(' | ')
     .slice(0, 255)
@@ -85,6 +92,7 @@ export async function POST(request: NextRequest) {
     customer?: CustomerInput
     referral?: string | null
     couponCode?: string | null
+    trainerCode?: string | null
   }
 
   try {
@@ -169,6 +177,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Los precios llegan siempre del catálogo del servidor: nunca confiamos en importes del navegador.
+  // Esta base es el PVP de producto antes de cupones y excluye portes; es también la base de comisión.
   const subtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
     0,
@@ -181,6 +191,7 @@ export async function POST(request: NextRequest) {
   const shippingCents = Math.round(getShippingCost(subtotalCents / 100) * 100)
   const referral = normalizeCode(clean(body.referral, 40))
   const couponCode = normalizeCode(clean(body.couponCode, 40))
+  const requestedTrainerCode = normalizeCode(clean(body.trainerCode, 40))
   const checkoutReference = `GHC-${Date.now()}-${randomUUID().slice(0, 8)}`
   const sumupCustomerId = `ghc_${randomUUID().replaceAll('-', '')}`
 
@@ -197,6 +208,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Un enlace de entrenador nunca bloquea la venta: si el código no está activo,
+    // el checkout continúa sin atribución ni comisión.
+    const trainer = requestedTrainerCode
+      ? await getActiveTrainerPartner(requestedTrainerCode)
+      : null
+
     const discountCents = coupon
       ? Math.floor((subtotalCents * coupon.percent) / 100)
       : 0
@@ -205,6 +222,12 @@ export async function POST(request: NextRequest) {
     if (totalCents <= 0) {
       return NextResponse.json({ error: 'El total del pedido no es válido.' }, { status: 400 })
     }
+
+    const trainerCommissionPercent = trainer?.commission_percent ?? null
+    const trainerCommissionBaseCents = trainer ? subtotalCents : null
+    const trainerCommissionCents = trainer
+      ? Math.floor((subtotalCents * trainer.commission_percent) / 100)
+      : null
 
     order = await createPendingOrder({
       checkoutReference,
@@ -216,6 +239,11 @@ export async function POST(request: NextRequest) {
       couponId: coupon?.id || null,
       couponCode: coupon?.code || null,
       referralCode: referral || null,
+      trainerPartnerId: trainer?.id || null,
+      trainerCode: trainer?.code || null,
+      trainerCommissionPercent,
+      trainerCommissionBaseCents,
+      trainerCommissionCents,
       addressLine,
       city,
       postalCode,
@@ -279,7 +307,12 @@ export async function POST(request: NextRequest) {
     redirectUrl.searchParams.set('ref', checkoutReference)
 
     const webhookUrl = new URL('/api/sumup/webhook', request.nextUrl.origin)
-    const description = buildOrderDescription(normalizedItems, referral, coupon?.code || '')
+    const description = buildOrderDescription(
+      normalizedItems,
+      referral,
+      coupon?.code || '',
+      trainer?.code || '',
+    )
 
     const checkoutResponse = await fetch('https://api.sumup.com/v0.1/checkouts', {
       method: 'POST',
@@ -327,6 +360,8 @@ export async function POST(request: NextRequest) {
       discount: discountCents / 100,
       amount: totalCents / 100,
       freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+      trainerAttributed: Boolean(trainer),
+      trainerCode: trainer?.code || null,
     })
   } catch (error) {
     console.error('Checkout error', error)
