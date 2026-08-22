@@ -36,15 +36,20 @@ function text(button: Element) {
 function createInfoButton() {
   const button = document.createElement('button')
   button.type = 'button'
-  button.className = 'ghc-food-info-button'
-  button.innerHTML = '<span class="ghc-food-info-dot"></span><span>Información alimentaria</span>'
+  button.className = 'ghc-food-info-button mt-4 inline-flex items-center gap-2 border border-black/15 bg-white px-3 py-2 text-[9px] font-black uppercase tracking-[0.11em] text-black/65 transition hover:border-[#169646] hover:text-[#169646]'
+  button.innerHTML = '<span aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:999px;background:#a3a3a3"></span><span>Información alimentaria</span>'
   return button
 }
 
 function createStatus() {
   const status = document.createElement('p')
-  status.className = 'ghc-food-info-status'
+  status.className = 'ghc-food-info-status mt-2 max-w-[210px] text-[9px] font-semibold leading-4 text-black/40'
   return status
+}
+
+function setDot(button: HTMLButtonElement, color: string) {
+  const dot = button.firstElementChild as HTMLElement | null
+  if (dot) dot.style.background = color
 }
 
 export default function ProductComplianceGuard() {
@@ -63,10 +68,7 @@ export default function ProductComplianceGuard() {
       const request = fetch(`/api/product-legal-info?name=${encodeURIComponent(name)}&flavor=${encodeURIComponent(flavor)}`, {
         cache: 'no-store',
       })
-        .then(async (response) => {
-          const payload = await response.json().catch(() => ({})) as LegalInfo
-          return payload
-        })
+        .then(async (response) => await response.json().catch(() => ({})) as LegalInfo)
         .catch(() => ({ legalReady: false, reason: 'OFFICIAL_SOURCE_UNAVAILABLE' } as LegalInfo))
 
       cache.set(key, request)
@@ -86,6 +88,8 @@ export default function ProductComplianceGuard() {
       addButton.disabled = true
       addButton.setAttribute('aria-disabled', 'true')
       addButton.title = 'Comprobando información alimentaria obligatoria'
+      addButton.style.opacity = '0.35'
+      addButton.style.cursor = 'not-allowed'
 
       let infoButton = host.querySelector(':scope > .ghc-food-info-button') as HTMLButtonElement | null
       if (!infoButton) {
@@ -100,8 +104,9 @@ export default function ProductComplianceGuard() {
       }
 
       infoButton.dataset.state = 'loading'
+      setDot(infoButton, '#a3a3a3')
       status.textContent = 'Verificando información oficial…'
-      status.dataset.state = 'loading'
+      status.style.color = 'rgba(10,13,11,.42)'
 
       fetchInfo(name, flavor).then((info) => {
         if (disposed || addButton.dataset.ghcLegalKey !== key) return
@@ -114,16 +119,22 @@ export default function ProductComplianceGuard() {
           addButton.removeAttribute('aria-disabled')
           addButton.dataset.ghcLegalState = 'ready'
           addButton.title = 'Añadir al carrito'
-          status!.textContent = 'Información alimentaria verificada antes de la compra'
-          status!.dataset.state = 'ready'
+          addButton.style.opacity = '1'
+          addButton.style.cursor = ''
+          setDot(infoButton!, '#169646')
+          status!.textContent = 'Información obligatoria verificada'
+          status!.style.color = '#117d38'
         } else {
           addButton.disabled = true
           addButton.setAttribute('aria-disabled', 'true')
           addButton.dataset.ghcLegalState = 'blocked'
           addButton.title = 'Venta temporalmente bloqueada: falta información alimentaria obligatoria verificable'
+          addButton.style.opacity = '0.28'
+          addButton.style.cursor = 'not-allowed'
+          setDot(infoButton!, '#d97706')
           const missing = info.missing?.length ? `: ${info.missing.join(', ')}` : ''
-          status!.textContent = `Venta bloqueada hasta completar la información obligatoria${missing}`
-          status!.dataset.state = 'blocked'
+          status!.textContent = `Venta bloqueada hasta completar información${missing}`
+          status!.style.color = '#9a3412'
         }
       })
     }
