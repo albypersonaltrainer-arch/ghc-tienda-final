@@ -1,5 +1,4 @@
 -- GHC Nutrition · esquema de comercio
--- Preparado para aplicarlo en un proyecto Supabase independiente de Academy.
 -- Datos accesibles únicamente desde el servidor mediante clave secreta.
 
 create extension if not exists citext;
@@ -98,6 +97,24 @@ create table if not exists public.order_items (
 create index if not exists order_items_order_idx
   on public.order_items(order_id);
 
+-- Evidencia mínima y versionada de lo aceptado/leído antes del pedido.
+-- Se evita almacenar más datos personales de los necesarios para probar la aceptación.
+create table if not exists public.order_legal_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  acceptance_type text not null
+    check (acceptance_type in ('terms', 'privacy_notice', 'returns_notice')),
+  document_version text not null,
+  accepted boolean not null default true,
+  accepted_at timestamptz not null default now(),
+  evidence_metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(order_id, acceptance_type)
+);
+
+create index if not exists order_legal_acceptances_order_idx
+  on public.order_legal_acceptances(order_id, accepted_at desc);
+
 -- Libro mayor de comisiones. Solo nace cuando un pedido pasa a PAID.
 -- amount_cents se congela con el porcentaje que tenía el entrenador al crear el checkout.
 create table if not exists public.trainer_commissions (
@@ -149,6 +166,7 @@ alter table public.referral_codes enable row level security;
 alter table public.trainer_partners enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
+alter table public.order_legal_acceptances enable row level security;
 alter table public.trainer_commissions enable row level security;
 alter table public.reward_coupons enable row level security;
 
@@ -157,6 +175,7 @@ revoke all on table public.referral_codes from anon, authenticated;
 revoke all on table public.trainer_partners from anon, authenticated;
 revoke all on table public.orders from anon, authenticated;
 revoke all on table public.order_items from anon, authenticated;
+revoke all on table public.order_legal_acceptances from anon, authenticated;
 revoke all on table public.trainer_commissions from anon, authenticated;
 revoke all on table public.reward_coupons from anon, authenticated;
 
@@ -165,5 +184,6 @@ grant select, insert, update, delete on table public.referral_codes to service_r
 grant select, insert, update, delete on table public.trainer_partners to service_role;
 grant select, insert, update, delete on table public.orders to service_role;
 grant select, insert, update, delete on table public.order_items to service_role;
+grant select, insert, update, delete on table public.order_legal_acceptances to service_role;
 grant select, insert, update, delete on table public.trainer_commissions to service_role;
 grant select, insert, update, delete on table public.reward_coupons to service_role;
