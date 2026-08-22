@@ -261,6 +261,23 @@ main > div.fixed aside > div:first-child > button svg {
   height: 14px;
 }
 
+/* Consumer-contract requirement: the final action states unambiguously that the order implies payment. */
+.ghc-payment-submit-legal {
+  font-size: 0 !important;
+}
+
+.ghc-payment-submit-legal svg {
+  display: none !important;
+}
+
+.ghc-payment-submit-legal::after {
+  content: 'Pedido con obligación de pago';
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 1023px) {
   .ghc-hero-v4__layout {
     grid-template-columns: 1fr;
