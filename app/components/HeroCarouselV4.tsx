@@ -44,7 +44,16 @@ export default function HeroCarouselV4() {
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    setTarget(document.getElementById('inicio'))
+    const node = document.getElementById('inicio')
+    if (!node) return
+
+    setTarget(node)
+    const frame = window.requestAnimationFrame(() => node.classList.add('ghc-v4-mounted'))
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      node.classList.remove('ghc-v4-mounted')
+    }
   }, [])
 
   useEffect(() => {
