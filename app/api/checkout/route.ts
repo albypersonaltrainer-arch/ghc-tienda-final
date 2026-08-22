@@ -20,6 +20,10 @@ import { isCommerceDatabaseConfigured } from '@/lib/supabase-rest'
 
 export const runtime = 'nodejs'
 
+const TERMS_VERSION = 'GHC_NUTRITION_ES_2026_08_22'
+const PRIVACY_VERSION = 'GHC_NUTRITION_PRIVACY_ES_2026_08_22'
+const RETURNS_VERSION = 'GHC_NUTRITION_RETURNS_ES_2026_08_22'
+
 type CheckoutItem = {
   productId?: string
   flavor?: string
@@ -36,6 +40,15 @@ type CustomerInput = {
   postalCode?: string
   state?: string
   country?: string
+}
+
+type LegalInput = {
+  termsAccepted?: boolean
+  privacyAcknowledged?: boolean
+  returnsAcknowledged?: boolean
+  termsVersion?: string
+  privacyVersion?: string
+  returnsVersion?: string
 }
 
 function clean(value: unknown, maxLength = 120) {
@@ -77,6 +90,40 @@ function buildOrderDescription(
 }
 
 export async function POST(request: NextRequest) {
+  let body: {
+    items?: CheckoutItem[]
+    customer?: CustomerInput
+    referral?: string | null
+    couponCode?: string | null
+    trainerCode?: string | null
+    legal?: LegalInput
+  }
+
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Petición no válida.' }, { status: 400 })
+  }
+
+  const legal = body.legal || {}
+  const currentLegalAcceptance =
+    legal.termsAccepted === true &&
+    legal.privacyAcknowledged === true &&
+    legal.returnsAcknowledged === true &&
+    legal.termsVersion === TERMS_VERSION &&
+    legal.privacyVersion === PRIVACY_VERSION &&
+    legal.returnsVersion === RETURNS_VERSION
+
+  if (!currentLegalAcceptance) {
+    return NextResponse.json(
+      {
+        error: 'Debes aceptar las condiciones legales vigentes antes de realizar un pedido con obligación de pago.',
+        code: 'LEGAL_ACCEPTANCE_REQUIRED',
+      },
+      { status: 400 },
+    )
+  }
+
   const apiKey = process.env.SUMUP_API_KEY
   const merchantCode = process.env.SUMUP_MERCHANT_CODE
 
@@ -98,20 +145,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 503 },
     )
-  }
-
-  let body: {
-    items?: CheckoutItem[]
-    customer?: CustomerInput
-    referral?: string | null
-    couponCode?: string | null
-    trainerCode?: string | null
-  }
-
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Petición no válida.' }, { status: 400 })
   }
 
   if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 40) {
@@ -192,14 +225,11 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // unitPrice es el precio real cobrado antes de cupón.
   const subtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
     0,
   )
 
-  // pvpPrice conserva el PVP de referencia. Si hay un pack/promoción GHC,
-  // puede ser superior a unitPrice y sigue siendo la base pactada con el entrenador.
   const pvpSubtotalCents = normalizedItems.reduce(
     (sum, item) => sum + Math.round(item.pvpPrice * 100) * item.quantity,
     0,
@@ -216,6 +246,7 @@ export async function POST(request: NextRequest) {
     normalizeCode(clean(body.trainerCode, 40)) || trainerCodeFromReferer(request)
   const checkoutReference = `GHC-${Date.now()}-${randomUUID().slice(0, 8)}`
   const sumupCustomerId = `ghc_${randomUUID().replaceAll('-', '')}`
+  const acceptedAt = new Date().toISOString()
 
   let order: Awaited<ReturnType<typeof createPendingOrder>> | null = null
 
@@ -269,6 +300,11 @@ export async function POST(request: NextRequest) {
       postalCode,
       state,
       country,
+      legalAcceptances: [
+        { acceptanceType: 'terms', documentVersion: TERMS_VERSION, acceptedAt },
+        { acceptanceType: 'privacy_notice', documentVersion: PRIVACY_VERSION, acceptedAt },
+        { acceptanceType: 'returns_notice', documentVersion: RETURNS_VERSION, acceptedAt },
+      ],
       items: normalizedItems.map((item) => ({
         productId: item.productId,
         name: item.name,
