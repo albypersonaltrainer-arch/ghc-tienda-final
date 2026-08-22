@@ -1,8 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+function normalize(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+export async function GET(request: NextRequest) {
   const response = await fetch('https://beverly.es/products.json?limit=250', {
     cache: 'no-store',
     headers: {
@@ -28,7 +37,16 @@ export async function GET() {
     }>
   }
 
-  const products = (payload.products || []).map((product) => ({
+  const query = normalize(request.nextUrl.searchParams.get('q') || '')
+  const terms = query.split(' ').filter(Boolean)
+
+  const source = (payload.products || []).filter((product) => {
+    if (!terms.length) return true
+    const haystack = normalize(`${product.title || ''} ${product.handle || ''}`)
+    return terms.every((term) => haystack.includes(term))
+  })
+
+  const products = source.slice(0, 20).map((product) => ({
     id: product.id,
     title: product.title,
     handle: product.handle,
