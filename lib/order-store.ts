@@ -135,6 +135,7 @@ export async function createPendingOrder(input: {
     flavor: string
     quantity: number
     unitPriceCents: number
+    unitPvpCents: number
   }>
 }) {
   const orders = await supabaseRest<OrderRecord[]>('orders', {
@@ -178,6 +179,7 @@ export async function createPendingOrder(input: {
         flavor: item.flavor,
         quantity: item.quantity,
         unit_price_cents: item.unitPriceCents,
+        unit_pvp_cents: item.unitPvpCents,
       })),
     ),
   })
@@ -287,10 +289,7 @@ export async function settleOrder(order: OrderRecord, status: string) {
 
   if (status !== 'PAID') return
 
-  // Independiente del programa cliente->cliente: un entrenador cobra sobre PVP de producto,
-  // nunca sobre portes, y el importe queda congelado al crear el checkout.
   await recordTrainerCommission(order)
-
   await ensureReferralCode(order.customer_id)
 
   if (!order.referral_code) return
