@@ -129,64 +129,42 @@
   }
 }
 
-/* Force the three full-resolution hero assets into the browser cache before the first rotation. */
-body::before {
-  content: '';
-  position: fixed;
-  left: -9999px;
-  top: -9999px;
-  width: 1px;
-  height: 1px;
+/* V4 hero: keep the original visible until the replacement has mounted. */
+#inicio.ghc-v4-mounted > :not(.ghc-hero-v4) {
+  display: none !important;
+}
+
+.ghc-hero-v4__layout {
+  display: grid;
+  grid-template-columns: 52% 48%;
+}
+
+.ghc-hero-v4__copy-bg {
+  background: #f4f4f0;
+}
+
+.ghc-hero-v4__photo {
+  background-size: cover;
+  background-repeat: no-repeat;
   opacity: 0;
+  transform: scale(1.018);
+  filter: saturate(1.12) contrast(1.05);
+  transition:
+    opacity 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 8.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.ghc-hero-v4__photo.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* No white haze: only a very subtle neutral depth layer. */
+.ghc-hero-v4__shade {
+  background:
+    linear-gradient(180deg, rgba(5, 8, 6, 0.01), rgba(5, 8, 6, 0.08));
   pointer-events: none;
-  background-image:
-    url('https://images.unsplash.com/photo-1758875569612-94d5e0f1a35f?auto=format&fit=crop&fm=jpg&q=95&w=4096'),
-    url('https://images.unsplash.com/photo-1697019921955-51a39f0fc354?auto=format&fit=crop&fm=jpg&q=95&w=4096'),
-    url('https://images.unsplash.com/photo-1785355064364-d275a792572e?auto=format&fit=crop&fm=jpg&q=95&w=4096');
-}
-
-@keyframes ghc-photo-in {
-  from {
-    opacity: 1;
-    transform: scale(1.012);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.hero-photo {
-  background-color: #101411;
-  animation: ghc-photo-in 850ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  filter: saturate(1.08) contrast(1.03);
-  will-change: transform;
-}
-
-/* 4K sports photography: running, strength and active recovery. */
-.hero-photo[style*="1643320193964"] {
-  background-image: url('https://images.unsplash.com/photo-1758875569612-94d5e0f1a35f?auto=format&fit=crop&fm=jpg&q=95&w=4096') !important;
-  background-position: 56% 50% !important;
-}
-
-.hero-photo[style*="1697019921955"] {
-  background-image: url('https://images.unsplash.com/photo-1697019921955-51a39f0fc354?auto=format&fit=crop&fm=jpg&q=95&w=4096') !important;
-  background-position: 56% 50% !important;
-}
-
-.hero-photo[style*="1781379947451"] {
-  background-image: url('https://images.unsplash.com/photo-1785355064364-d275a792572e?auto=format&fit=crop&fm=jpg&q=95&w=4096') !important;
-  background-position: 50% 48% !important;
-}
-
-/* Photographer credits are intentionally omitted from the visual hero. */
-#inicio .hero-photo > span {
-  display: none !important;
-}
-
-/* Products remain outside the hero photography. */
-#inicio .hero-product {
-  display: none !important;
 }
 
 .product-study-image {
@@ -247,20 +225,22 @@ body::before {
   font-weight: 650;
 }
 
-@media (min-width: 1024px) {
-  #inicio .hero-photo {
-    clip-path: none;
-  }
-
-  #inicio > div:nth-child(2) {
-    grid-template-columns: 0.58fr 0.42fr;
-  }
-}
-
 @media (max-width: 1023px) {
-  #inicio .hero-photo {
-    opacity: 0.30;
-    filter: saturate(1.05) contrast(1.02);
+  .ghc-hero-v4__layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 58% 42%;
+  }
+
+  .ghc-hero-v4__copy-bg {
+    grid-row: 1;
+  }
+
+  .ghc-hero-v4__visual {
+    grid-row: 2;
+  }
+
+  .ghc-hero-v4__photo {
+    filter: saturate(1.08) contrast(1.03);
   }
 
   #catalogo .scrollbar-none {
@@ -278,10 +258,7 @@ body::before {
     scroll-behavior: auto;
   }
 
-  .hero-photo {
-    animation: none;
-  }
-
+  .ghc-hero-v4__photo,
   .product-study-image {
     transition: none;
   }
