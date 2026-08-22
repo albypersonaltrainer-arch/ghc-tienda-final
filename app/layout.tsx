@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import HeroCarouselV4 from '@/app/components/HeroCarouselV4'
 import CheckoutLegalGuard from '@/app/components/CheckoutLegalGuard'
 import ProductComplianceGuard from '@/app/components/ProductComplianceGuard'
+import DeliveryTimingGuard from '@/app/components/DeliveryTimingGuard'
 import './globals.css'
 
 const geist = Geist({
@@ -43,6 +44,7 @@ export default function RootLayout({
         <HeroCarouselV4 />
         <CheckoutLegalGuard />
         <ProductComplianceGuard />
+        <DeliveryTimingGuard />
       </body>
     </html>
   )
