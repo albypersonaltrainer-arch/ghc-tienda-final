@@ -225,6 +225,42 @@
   font-weight: 650;
 }
 
+/* Cart drawer: make the close action explicit and useful as a premium "seguir comprando" tab. */
+main > div.fixed aside > div:first-child > button {
+  width: auto !important;
+  min-width: 156px;
+  height: 42px !important;
+  padding: 0 14px 0 16px;
+  border-radius: 0 !important;
+  border: 1px solid rgba(10, 13, 11, 0.16) !important;
+  background: #ffffff;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+main > div.fixed aside > div:first-child > button::before {
+  content: 'Seguir comprando';
+  white-space: nowrap;
+}
+
+main > div.fixed aside > div:first-child > button:hover {
+  background: #0a0d0b;
+  color: #ffffff;
+  border-color: #0a0d0b !important;
+}
+
+main > div.fixed aside > div:first-child > button svg {
+  width: 14px;
+  height: 14px;
+}
+
 @media (max-width: 1023px) {
   .ghc-hero-v4__layout {
     grid-template-columns: 1fr;
@@ -250,6 +286,18 @@
   #catalogo .scrollbar-none button {
     min-height: 44px;
     padding: 0 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  main > div.fixed aside > div:first-child > button {
+    min-width: 0;
+    padding: 0 11px;
+    letter-spacing: 0.08em;
+  }
+
+  main > div.fixed aside > div:first-child > button::before {
+    content: 'Seguir';
   }
 }
 
