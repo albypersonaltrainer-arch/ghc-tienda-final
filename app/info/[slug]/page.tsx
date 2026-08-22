@@ -8,7 +8,7 @@ const pages = {
     intro: 'Las respuestas básicas para comprar en GHC Nutrition sin incertidumbre.',
     sections: [
       ['¿Dónde entregáis?', 'En la fase inicial atendemos pedidos con código postal de la Comunidad de Madrid (28xxx). Antes de ampliar la zona revisaremos costes y operativa.'],
-      ['¿Cuánto cuesta el envío?', '5,90 € para pedidos inferiores a 70 €. El envío es gratuito desde 70 €.'],
+      ['¿Cuánto cuesta el envío?', '10 € para pedidos inferiores a 70 €. El envío es gratuito desde 70 €.'],
       ['¿Cómo se paga?', 'El pago se completa mediante el checkout seguro alojado por SumUp. GHC Nutrition no almacena los datos de tu tarjeta.'],
       ['¿Puedo comprar varios productos a la vez?', 'Sí. El carrito permite acumular productos, variantes y cantidades y realizar un único pago.'],
       ['¿Cómo funciona Recomienda GHC?', 'Tras una compra pagada obtienes un código personal. Cuando un amigo realiza una compra pagada usando tu código, se genera un cupón del 10% para tu siguiente pedido.'],
@@ -20,7 +20,7 @@ const pages = {
     intro: 'Una política inicial sencilla para mantener controlada la operación.',
     sections: [
       ['Zona actual', 'Comunidad de Madrid, validada mediante códigos postales 28xxx. La cobertura se podrá restringir por municipios antes del lanzamiento definitivo si la logística lo requiere.'],
-      ['Tarifa', '5,90 € para pedidos inferiores a 70 €. Envío gratuito a partir de 70 €.'],
+      ['Tarifa', '10 € para pedidos inferiores a 70 €. Envío gratuito a partir de 70 €.'],
       ['Plazos', 'Los plazos concretos se confirmarán antes de producción en función del operador logístico y la zona de entrega. No mostramos una promesa de plazo que todavía no podamos garantizar.'],
       ['Dirección', 'El cliente debe facilitar nombre, apellidos, email, teléfono, dirección, municipio y código postal correctos antes de iniciar el pago.'],
     ],
