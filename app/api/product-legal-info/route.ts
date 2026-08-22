@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  INGREDIENT_FALLBACKS,
+  VARIANT_INGREDIENT_FALLBACKS,
+  type IngredientFallback,
+} from '@/lib/product-ingredient-fallbacks'
 
 export const runtime = 'nodejs'
 
@@ -207,6 +212,17 @@ function quantityFromTitle(title: string) {
   return matches?.[0] || ''
 }
 
+function ingredientFallback(normalizedName: string, flavor: string): IngredientFallback | null {
+  const normalizedFlavor = normalize(flavor)
+  const exact = VARIANT_INGREDIENT_FALLBACKS[`${normalizedName}::${normalizedFlavor}`]
+  if (exact) return exact
+
+  const general = INGREDIENT_FALLBACKS[normalizedName]
+  if (!general) return null
+  if (general.flavors?.length && !general.flavors.map(normalize).includes(normalizedFlavor)) return null
+  return general
+}
+
 export async function GET(request: NextRequest) {
   const productName = (request.nextUrl.searchParams.get('name') || '').trim().slice(0, 120)
   const flavor = (request.nextUrl.searchParams.get('flavor') || '').trim().slice(0, 100)
@@ -238,12 +254,15 @@ export async function GET(request: NextRequest) {
     const warningSection = findSection(sections, ['advertencias', 'precauciones'])
     const storageSection = findSection(sections, ['conservacion', 'conservar'])
     const descriptionSection = findSection(sections, ['descripcion del producto', 'descripcion'])
+    const officialTitle = match.product.title || productName
+    const officialUrl = match.product.handle ? `https://beverly.es/products/${match.product.handle}` : null
+    const fallback = ingredientFallback(normalizedName, flavor)
 
-    const ingredients = ingredientsSection?.text || ''
+    const officialIngredients = ingredientsSection?.text || ''
+    const ingredients = officialIngredients || fallback?.ingredients || ''
     const nutritionRows = nutritionSection ? parseTableRows(nutritionSection.raw) : []
     const usage = usageSection?.text || ''
     const allergens = ingredientsSection ? extractAllergens(ingredientsSection.raw) : []
-    const officialTitle = match.product.title || productName
     const supplement = SUPPLEMENT_HINTS.has(normalizedName) ||
       normalize(descriptionSection?.text || '').includes('complemento alimenticio') ||
       normalize(descriptionSection?.text || '').startsWith('complemento a base')
@@ -272,6 +291,13 @@ export async function GET(request: NextRequest) {
     if (!hasUsage) missing.push('modo de empleo')
     if (!hasCaffeineAmountWhenRequired) missing.push('cantidad de cafeína por porción recomendada')
 
+    const sourceWarnings = [
+      warningSection?.text || '',
+      ...(fallback?.warnings || []),
+      fallback?.traces || '',
+      ...statutoryWarnings,
+    ].filter(Boolean)
+
     return NextResponse.json({
       legalReady,
       reason: legalReady ? null : 'MANDATORY_INFO_INCOMPLETE',
@@ -280,19 +306,26 @@ export async function GET(request: NextRequest) {
       selectedFlavor: flavor,
       legalDenomination: supplement ? 'Complemento alimenticio' : (descriptionSection?.text || officialTitle),
       officialTitle,
-      officialUrl: match.product.handle ? `https://beverly.es/products/${match.product.handle}` : null,
+      officialUrl,
       quantity: normalizedName === 'pack collagen for her 2 cajas' ? '2 cajas · 40 viales' : quantityFromTitle(officialTitle),
       description: descriptionSection?.text || '',
       ingredients,
       allergens,
       nutritionRows,
       usage,
-      warnings: [warningSection?.text || '', ...statutoryWarnings].filter(Boolean),
+      warnings: [...new Set(sourceWarnings)],
       storage: storageSection?.text || 'Conservar según las indicaciones del envase original.',
       caffeinePerRecommendedPortion: caffeineRow?.value || null,
       supplement,
       operator: BEVERLY_OPERATOR,
-      source: 'Beverly Nutrition · información oficial publicada por el fabricante/distribuidor',
+      source: officialIngredients
+        ? 'Beverly Nutrition · información oficial publicada por el fabricante/distribuidor'
+        : fallback
+          ? `Beverly Nutrition (composición y uso) + ${fallback.sourceName} (declaración de ingredientes)`
+          : 'Beverly Nutrition · información oficial publicada por el fabricante/distribuidor',
+      ingredientSourceName: officialIngredients ? 'Beverly Nutrition' : fallback?.sourceName || null,
+      ingredientSourceUrl: officialIngredients ? officialUrl : fallback?.sourceUrl || null,
+      ingredientSourceType: officialIngredients ? 'official' : fallback ? 'verified_secondary' : null,
       checkedAt: new Date().toISOString(),
     })
   } catch (error) {
