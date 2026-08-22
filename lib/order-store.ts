@@ -22,14 +22,28 @@ export type CouponRecord = {
   expires_at: string
 }
 
+export type TrainerPartnerRecord = {
+  id: string
+  code: string
+  name: string
+  commission_percent: number
+  active: boolean
+}
+
 export type OrderRecord = {
   id: string
   checkout_reference: string
   sumup_checkout_id: string | null
   customer_id: string
   status: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'CANCELLED'
+  subtotal_cents: number
   coupon_id: string | null
   referral_code: string | null
+  trainer_partner_id: string | null
+  trainer_code: string | null
+  trainer_commission_percent: number | null
+  trainer_commission_base_cents: number | null
+  trainer_commission_cents: number | null
 }
 
 type CustomerInput = {
@@ -38,6 +52,22 @@ type CustomerInput = {
   email: string
   phone: string
 }
+
+const ORDER_SELECT = [
+  'id',
+  'checkout_reference',
+  'sumup_checkout_id',
+  'customer_id',
+  'status',
+  'subtotal_cents',
+  'coupon_id',
+  'referral_code',
+  'trainer_partner_id',
+  'trainer_code',
+  'trainer_commission_percent',
+  'trainer_commission_base_cents',
+  'trainer_commission_cents',
+].join(',')
 
 export async function upsertCustomer(input: CustomerInput) {
   const rows = await supabaseRest<CustomerRecord[]>('customers?on_conflict=email', {
@@ -68,6 +98,17 @@ export async function getActiveCoupon(code: string, customerId: string) {
   return rows?.[0] || null
 }
 
+export async function getActiveTrainerPartner(code: string) {
+  const normalized = normalizeCode(code)
+  if (!normalized) return null
+
+  const rows = await supabaseRest<TrainerPartnerRecord[]>(
+    `trainer_partners?code=eq.${encodeURIComponent(normalized)}&active=eq.true&select=id,code,name,commission_percent,active&limit=1`,
+  )
+
+  return rows?.[0] || null
+}
+
 export async function createPendingOrder(input: {
   checkoutReference: string
   customerId: string
@@ -78,6 +119,11 @@ export async function createPendingOrder(input: {
   couponId: string | null
   couponCode: string | null
   referralCode: string | null
+  trainerPartnerId: string | null
+  trainerCode: string | null
+  trainerCommissionPercent: number | null
+  trainerCommissionBaseCents: number | null
+  trainerCommissionCents: number | null
   addressLine: string
   city: string
   postalCode: string
@@ -105,6 +151,11 @@ export async function createPendingOrder(input: {
       coupon_id: input.couponId,
       coupon_code: input.couponCode,
       referral_code: input.referralCode,
+      trainer_partner_id: input.trainerPartnerId,
+      trainer_code: input.trainerCode,
+      trainer_commission_percent: input.trainerCommissionPercent,
+      trainer_commission_base_cents: input.trainerCommissionBaseCents,
+      trainer_commission_cents: input.trainerCommissionCents,
       address_line: input.addressLine,
       city: input.city,
       postal_code: input.postalCode,
@@ -164,16 +215,39 @@ export async function updateOrder(
 
 export async function findOrderByCheckoutId(checkoutId: string) {
   const rows = await supabaseRest<OrderRecord[]>(
-    `orders?sumup_checkout_id=eq.${encodeURIComponent(checkoutId)}&select=id,checkout_reference,sumup_checkout_id,customer_id,status,coupon_id,referral_code&limit=1`,
+    `orders?sumup_checkout_id=eq.${encodeURIComponent(checkoutId)}&select=${ORDER_SELECT}&limit=1`,
   )
   return rows?.[0] || null
 }
 
 export async function findOrderByReference(reference: string) {
   const rows = await supabaseRest<OrderRecord[]>(
-    `orders?checkout_reference=eq.${encodeURIComponent(reference)}&select=id,checkout_reference,sumup_checkout_id,customer_id,status,coupon_id,referral_code&limit=1`,
+    `orders?checkout_reference=eq.${encodeURIComponent(reference)}&select=${ORDER_SELECT}&limit=1`,
   )
   return rows?.[0] || null
+}
+
+async function recordTrainerCommission(order: OrderRecord) {
+  if (
+    !order.trainer_partner_id ||
+    !order.trainer_commission_percent ||
+    !order.trainer_commission_base_cents ||
+    !order.trainer_commission_cents
+  ) return
+
+  await supabaseRest('trainer_commissions?on_conflict=order_id', {
+    method: 'POST',
+    prefer: 'resolution=ignore-duplicates,return=minimal',
+    body: JSON.stringify({
+      order_id: order.id,
+      trainer_partner_id: order.trainer_partner_id,
+      commission_base_cents: order.trainer_commission_base_cents,
+      commission_percent: order.trainer_commission_percent,
+      amount_cents: order.trainer_commission_cents,
+      status: 'earned',
+      earned_at: new Date().toISOString(),
+    }),
+  })
 }
 
 export async function settleOrder(order: OrderRecord, status: string) {
@@ -212,6 +286,10 @@ export async function settleOrder(order: OrderRecord, status: string) {
   }
 
   if (status !== 'PAID') return
+
+  // Independiente del programa cliente->cliente: un entrenador cobra sobre PVP de producto,
+  // nunca sobre portes, y el importe queda congelado al crear el checkout.
+  await recordTrainerCommission(order)
 
   await ensureReferralCode(order.customer_id)
 
