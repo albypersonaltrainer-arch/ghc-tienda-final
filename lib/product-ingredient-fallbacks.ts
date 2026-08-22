@@ -62,3 +62,11 @@ export const INGREDIENT_FALLBACKS: Record<string, IngredientFallback> = {
     traces: 'Puede contener trazas de gluten, leche, soja, huevos, crustáceos y frutos de cáscara.',
   },
 }
+
+export const VARIANT_INGREDIENT_FALLBACKS: Record<string, IngredientFallback> = {
+  'dynamite pre workout 375g::blue lollipop': {
+    ingredients: 'Arginina AKG, creatina monohidrato (Creapure®), beta-alanina (CarnoSyn®), L-citrulina malato, aroma (maltodextrina, acidulantes: ácido cítrico y ácido málico, edulcorante: sucralosa, colorante: E-133), L-tirosina, VitaCholine™: bitartrato de colina, antiaglomerante: dióxido de silicio, NewCaff™ 75 microcápsulas (cafeína microencapsulada, emulgente: mono y diglicéridos de ácidos grasos), L-taurina, Astragin® (extracto de Panax notoginseng y Astragalus membranaceus) (1,5% saponinas), acidulante: ácido cítrico, niacina (niacinamida), vitamina B6 (clorhidrato de piridoxina), BioPerine® [extracto seco de pimienta negra (Piper nigrum, fruto), 95% piperina].',
+    sourceName: 'PonteMASfuerte · Dynamite Beverly Nutrition, ficha Blue Lollipop',
+    sourceUrl: 'https://www.pontemasfuerte.com/beverly-nutrition/dynamite',
+  },
+}
