@@ -89,6 +89,9 @@ create table if not exists public.order_items (
   flavor text not null,
   quantity integer not null check (quantity between 1 and 10),
   unit_price_cents integer not null check (unit_price_cents > 0),
+  -- PVP de referencia congelado para auditoría de comisión. Puede ser mayor que unit_price_cents
+  -- cuando GHC ofrece un pack/descuento propio.
+  unit_pvp_cents integer not null check (unit_pvp_cents > 0),
   created_at timestamptz not null default now()
 );
 
