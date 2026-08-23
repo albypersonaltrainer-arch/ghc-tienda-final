@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { CheckCircle2, Clock3, Gift, XCircle } from 'lucide-react'
+import ClearPaidCart from '@/app/components/ClearPaidCart'
 import GHCNutritionLogo from '@/app/components/GHCNutritionLogo'
 import { ensureReferralCode, findOrderByReference, settleOrder } from '@/lib/order-store'
 import { isCommerceDatabaseConfigured } from '@/lib/supabase-rest'
@@ -89,6 +90,7 @@ export default async function CheckoutResultPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F2F4F1] px-4 py-16 text-[#050706]">
+      <ClearPaidCart paid={status === 'PAID'} />
       <div className="w-full max-w-xl rounded-[34px] border border-black/[0.07] bg-white p-8 text-center shadow-[0_30px_100px_rgba(5,7,6,0.08)] sm:p-10">
         <div className="flex justify-center"><GHCNutritionLogo size="md" /></div>
         <div className={`mx-auto mt-8 flex h-16 w-16 items-center justify-center rounded-full ${content.tone}`}>
