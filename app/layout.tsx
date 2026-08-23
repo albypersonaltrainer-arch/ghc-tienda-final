@@ -4,6 +4,7 @@ import HeroCarouselV4 from '@/app/components/HeroCarouselV4'
 import CheckoutLegalGuard from '@/app/components/CheckoutLegalGuard'
 import ProductComplianceGuard from '@/app/components/ProductComplianceGuard'
 import DeliveryTimingGuard from '@/app/components/DeliveryTimingGuard'
+import GHCEcosystemLinks from '@/app/components/GHCEcosystemLinks'
 import './globals.css'
 
 const geist = Geist({
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${geist.variable} font-sans antialiased`}>
         {children}
+        <GHCEcosystemLinks />
         <HeroCarouselV4 />
         <CheckoutLegalGuard />
         <ProductComplianceGuard />
