@@ -1,0 +1,160 @@
+/* Mobile-only layout corrections for GHC Nutrition.
+   Keep desktop/editorial composition intact while preventing horizontal page overflow. */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@media (max-width: 767px) {
+  /* Hero: give the copy enough vertical room before the photograph begins. */
+  #inicio {
+    min-height: 920px !important;
+  }
+
+  .ghc-hero-v4 > .relative {
+    min-height: 920px !important;
+    align-items: start !important;
+    padding-top: 28px !important;
+    padding-bottom: 28px !important;
+  }
+
+  .ghc-hero-v4__layout {
+    grid-template-rows: 64% 36% !important;
+  }
+
+  .ghc-hero-v4 .relative.z-10 {
+    width: 100%;
+    max-width: 100% !important;
+    padding-top: 18px !important;
+    padding-bottom: 330px !important;
+  }
+
+  .ghc-hero-v4 h1 {
+    max-width: 100% !important;
+    font-size: clamp(2.65rem, 12.8vw, 3.25rem) !important;
+    line-height: 0.88 !important;
+    letter-spacing: -0.06em !important;
+    overflow-wrap: normal;
+  }
+
+  .ghc-hero-v4 h1 span {
+    margin-top: 0.35rem !important;
+    font-size: 0.9em;
+    line-height: 0.94;
+  }
+
+  .ghc-hero-v4 h1 + p {
+    margin-top: 1.35rem !important;
+    max-width: 100% !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .ghc-hero-v4 h1 + p + div {
+    margin-top: 1.45rem !important;
+    gap: 12px !important;
+  }
+
+  /* Catalog filters: no horizontal swipe. Show the complete selector as a wrapping grid. */
+  #catalogo,
+  #catalogo > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #catalogo .scrollbar-none {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    overflow-x: visible !important;
+    gap: 8px !important;
+  }
+
+  #catalogo .scrollbar-none button {
+    width: 100%;
+    min-width: 0 !important;
+    min-height: 46px;
+    padding: 7px 9px !important;
+    white-space: normal;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  /* Product rows: force a true one-column mobile composition. */
+  #catalogo article,
+  #catalogo article > div.grid {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #catalogo article > div.grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+    overflow: hidden;
+    padding-top: 28px !important;
+    padding-bottom: 28px !important;
+  }
+
+  #catalogo article > div.grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #catalogo article > div.grid > button {
+    width: 100%;
+  }
+
+  #catalogo article h3 {
+    max-width: 100%;
+    font-size: clamp(1.9rem, 9vw, 2.45rem) !important;
+    line-height: 0.98 !important;
+    overflow-wrap: anywhere;
+  }
+
+  #catalogo article p {
+    max-width: 100%;
+  }
+
+  #catalogo article label {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #catalogo article select {
+    min-width: 0;
+    max-width: min(58vw, 240px);
+  }
+
+  /* Price + Add action must always remain inside the viewport. */
+  #catalogo article > div.grid > div:last-child {
+    display: flex !important;
+    width: 100%;
+    min-width: 0;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    text-align: left !important;
+  }
+
+  #catalogo article > div.grid > div:last-child > button {
+    flex: 0 0 auto;
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #catalogo .scrollbar-none button {
+    padding-inline: 6px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.07em !important;
+  }
+
+  #catalogo article > div.grid > div:last-child {
+    align-items: center !important;
+  }
+}
