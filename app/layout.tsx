@@ -6,6 +6,7 @@ import ProductComplianceGuard from '@/app/components/ProductComplianceGuard'
 import DeliveryTimingGuard from '@/app/components/DeliveryTimingGuard'
 import GHCEcosystemLinks from '@/app/components/GHCEcosystemLinks'
 import './globals.css'
+import './mobile-fixes.css'
 
 const geist = Geist({
   subsets: ['latin'],
