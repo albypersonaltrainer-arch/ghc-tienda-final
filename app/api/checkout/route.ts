@@ -23,6 +23,7 @@ export const runtime = 'nodejs'
 const TERMS_VERSION = 'GHC_NUTRITION_ES_2026_08_22'
 const PRIVACY_VERSION = 'GHC_NUTRITION_PRIVACY_ES_2026_08_22'
 const RETURNS_VERSION = 'GHC_NUTRITION_RETURNS_ES_2026_08_22'
+const ALLOWED_ECOSYSTEM_SOURCES = new Set(['ghctraining', 'ghcacademy'])
 
 type CheckoutItem = {
   productId?: string
@@ -51,6 +52,12 @@ type LegalInput = {
   returnsVersion?: string
 }
 
+type EcosystemAttribution = {
+  sourceChannel: 'ghc-ecosystem'
+  sourceDetail: 'ghctraining' | 'ghcacademy'
+  campaignCode: 'GHC_ECOSYSTEM'
+}
+
 function clean(value: unknown, maxLength = 120) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 }
@@ -65,6 +72,31 @@ function trainerCodeFromReferer(request: NextRequest) {
     return normalizeCode(url.searchParams.get('coach') || '')
   } catch {
     return ''
+  }
+}
+
+function ecosystemAttributionFromReferer(request: NextRequest): EcosystemAttribution | null {
+  const referer = request.headers.get('referer')
+  if (!referer) return null
+
+  try {
+    const url = new URL(referer)
+    if (url.origin !== request.nextUrl.origin) return null
+
+    const source = url.searchParams.get('utm_source') || ''
+    const medium = url.searchParams.get('utm_medium') || ''
+    const campaign = url.searchParams.get('utm_campaign') || ''
+
+    if (!ALLOWED_ECOSYSTEM_SOURCES.has(source)) return null
+    if (medium !== 'ecosystem' || campaign !== 'ghc_ecosystem') return null
+
+    return {
+      sourceChannel: 'ghc-ecosystem',
+      sourceDetail: source as EcosystemAttribution['sourceDetail'],
+      campaignCode: 'GHC_ECOSYSTEM',
+    }
+  } catch {
+    return null
   }
 }
 
@@ -299,6 +331,7 @@ export async function POST(request: NextRequest) {
   const couponCode = normalizeCode(clean(body.couponCode, 40))
   const requestedTrainerCode =
     normalizeCode(clean(body.trainerCode, 40)) || trainerCodeFromReferer(request)
+  const ecosystemAttribution = ecosystemAttributionFromReferer(request)
   const checkoutReference = `GHC-${Date.now()}-${randomUUID().slice(0, 8)}`
   const sumupCustomerId = `ghc_${randomUUID().replaceAll('-', '')}`
   const acceptedAt = new Date().toISOString()
@@ -369,6 +402,18 @@ export async function POST(request: NextRequest) {
         unitPvpCents: Math.round(item.pvpPrice * 100),
       })),
     })
+
+    if (ecosystemAttribution) {
+      try {
+        await updateOrder(order.id, {
+          source_channel: ecosystemAttribution.sourceChannel,
+          source_detail: ecosystemAttribution.sourceDetail,
+          campaign_code: ecosystemAttribution.campaignCode,
+        })
+      } catch (attributionError) {
+        console.error('Could not persist GHC ecosystem attribution', attributionError)
+      }
+    }
 
     if (coupon && !(await reserveCoupon(coupon.id, order.id))) {
       await updateOrder(order.id, { status: 'CANCELLED' })
@@ -474,6 +519,7 @@ export async function POST(request: NextRequest) {
       freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
       trainerAttributed: Boolean(trainer),
       trainerCode: trainer?.code || null,
+      ecosystemSource: ecosystemAttribution?.sourceDetail || null,
     })
   } catch (error) {
     console.error('Checkout error', error)
