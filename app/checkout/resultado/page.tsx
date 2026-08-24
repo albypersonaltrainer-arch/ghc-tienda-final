@@ -7,6 +7,9 @@ import { isCommerceDatabaseConfigured } from '@/lib/supabase-rest'
 
 type CheckoutStatus = 'PAID' | 'PENDING' | 'FAILED' | 'EXPIRED' | 'UNKNOWN'
 
+const TRAINING_URL = 'https://www.ghctraining.com?utm_source=ghcnutrition&utm_medium=ecosystem&utm_campaign=ghc_ecosystem'
+const ACADEMY_URL = 'https://ghcacademy.net?utm_source=ghcnutrition&utm_medium=ecosystem&utm_campaign=ghc_ecosystem'
+
 async function getCheckoutStatus(reference: string): Promise<CheckoutStatus> {
   const apiKey = process.env.SUMUP_API_KEY
   if (!apiKey) return 'UNKNOWN'
@@ -112,6 +115,22 @@ export default async function CheckoutResultPage({
             <p className="mt-3 text-lg font-black">Comparte tu código: {referralCode}</p>
             <p className="mt-2 text-xs leading-5 text-white/55">Cuando un amigo haga una compra pagada usando este código, generaremos para ti un cupón del 10% para tu siguiente pedido.</p>
           </div>
+        )}
+
+        {status === 'PAID' && (
+          <section className="mt-5 rounded-2xl border border-black/[0.07] bg-[#F7F8F5] p-5 text-left" aria-label="Ecosistema GHC">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#159943]">Ecosistema GHC</p>
+            <h2 className="mt-2 text-lg font-black tracking-[-0.03em]">Nutrición, entrenamiento y formación conectados por el mismo criterio.</h2>
+            <p className="mt-2 text-xs leading-5 text-black/55">Si quieres seguir dentro del ecosistema, puedes conocer el servicio de entrenamiento o la formación profesional de GHC Academy.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <a href={TRAINING_URL} className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#050706] px-4 text-center text-xs font-black text-white transition hover:bg-[#159943]">
+                GHC Training
+              </a>
+              <a href={ACADEMY_URL} className="inline-flex min-h-11 items-center justify-center rounded-full border border-black/10 bg-white px-4 text-center text-xs font-black text-[#050706] transition hover:border-[#159943] hover:text-[#159943]">
+                GHC Academy
+              </a>
+            </div>
+          </section>
         )}
 
         <Link href="/" className="mt-7 inline-flex h-12 items-center justify-center rounded-full bg-[#050706] px-6 text-sm font-black text-white transition hover:bg-[#159943]">
