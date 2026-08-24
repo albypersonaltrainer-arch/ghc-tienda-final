@@ -126,24 +126,82 @@ body {
   }
 
   #catalogo article select {
+    width: auto;
     min-width: 0;
     max-width: min(58vw, 240px);
   }
 
-  /* Price + Add action must always remain inside the viewport. */
-  #catalogo article > div.grid > div:last-child {
-    display: flex !important;
-    width: 100%;
-    min-width: 0;
-    align-items: flex-end !important;
-    justify-content: space-between !important;
-    gap: 16px !important;
+  /*
+   * The compliance guard injects its information button and verification status
+   * into the same host that already contains price + Add. Desktop has room for
+   * that editorial row; mobile does not. Any purchase host containing those
+   * injected controls becomes a single, explicit vertical checkout stack.
+   */
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    gap: 10px !important;
     text-align: left !important;
   }
 
-  #catalogo article > div.grid > div:last-child > button {
-    flex: 0 0 auto;
-    margin-top: 0 !important;
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > div:first-child {
+    width: 100% !important;
+  }
+
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > .ghc-food-info-button {
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 2px 0 0 !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    white-space: normal !important;
+  }
+
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > .ghc-food-info-status {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere;
+  }
+
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > button[data-ghc-legal-state] {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin-top: 4px !important;
+    padding: 13px 0 11px !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    white-space: normal !important;
+    text-align: left !important;
+  }
+
+  /* Catalog purchase column must not restore its old horizontal flex layout. */
+  #catalogo article > div.grid > div:last-child:has(> .ghc-food-info-button) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    gap: 10px !important;
+    text-align: left !important;
   }
 }
 
@@ -154,7 +212,7 @@ body {
     letter-spacing: 0.07em !important;
   }
 
-  #catalogo article > div.grid > div:last-child {
-    align-items: center !important;
+  main div:has(> .ghc-food-info-button):has(> button[data-ghc-legal-state]) > .ghc-food-info-button {
+    width: 100% !important;
   }
 }
