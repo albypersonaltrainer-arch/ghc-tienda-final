@@ -13,6 +13,21 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'ghcnutrition.com',
+          },
+        ],
+        destination: 'https://www.ghcnutrition.com/:path*',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig
